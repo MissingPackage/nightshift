@@ -2,12 +2,14 @@
 // Measures coverage of a convention: baseline count → classify fan-out → adversarial
 // verification of the non-compliant sites → report n/total + exact worklist + motivated
 // exceptions. The FIX stays outside (briefs/PI): this workflow is the sensor, not the
-// executor — "mostly applied" (the 30%-events slop) stops being expressible
+// executor — "mostly applied" (the pattern that exists at 30% of its sites) stops being expressible
 // because the number is mechanical.
 //
 // Install: cp into <project>/.claude/workflows/ · Invoke: Workflow({name: "pattern-coverage",
 //   args: {pattern: "<the convention, e.g. 'domain events emitted via outbox'>",
-//          globs: ["src/**/*.py"], hint: "<where to look / what counts as a site>"}})
+//          globs: ["src/**/*.py"], hint: "<where to look / what counts as a site>",
+//          model?: "<sonnet|haiku — cost control; omit to inherit the session model>",
+//          maxVerify?: 12   // bound on the per-site skeptic fan-out (no silent cap)}})
 export const meta = {
   name: 'pattern-coverage',
   description: 'Mechanical coverage baseline of a convention: n/total, worklist, exceptions',
@@ -74,10 +76,15 @@ function parseArgs(raw, primary, usage) {
   if (primary) return { [primary]: raw }
   throw new Error(`args: got free text, but this workflow requires ${usage}`)
 }
-const A = parseArgs(args, null, '{pattern: string, globs: string[], hint?: string}')
+const A = parseArgs(args, null, '{pattern: string, globs: string[], hint?: string, model?: string, maxVerify?: number}')
 if (!A.pattern || !Array.isArray(A.globs) || A.globs.length === 0) {
-  throw new Error('required args: {pattern: string, globs: string[], hint?: string}')
+  throw new Error('required args: {pattern: string, globs: string[], hint?: string, model?: string, maxVerify?: number}')
 }
+// Cost knobs (2026-08-14: a first real run inherited the session model — fable — and the
+// skeptic fan-out spawned one agent PER non-compliant site: 57 agents before the PI hit
+// stop. The sensor, not the migration, dominates the agent count).
+const MO = A.model ? { model: A.model } : {}
+const MAX_VERIFY = A.maxVerify ?? 12   // skeptics are a per-site fan-out: bound it
 
 log(`pattern: ${A.pattern} — ${A.globs.length} glob group(s)`)
 
@@ -90,24 +97,30 @@ const results = await pipeline(
         `(not only where it is violated). For each site: file, line, why it applies, whether ` +
         `it is compliant, and any justified-exception claim found in comments/ADRs. ` +
         `Be exhaustive: one missed site falsifies the baseline. Modify nothing.`,
-      { label: `classify:${glob}`, phase: 'Classify', schema: SITES },
+      { label: `classify:${glob}`, phase: 'Classify', schema: SITES, ...MO },
     ),
-  (res, glob) =>
-    res
-      ? parallel(
-          res.sites
-            .filter((s) => !s.compliant)
+  (res, glob) => {
+    if (!res) return null
+    const nc = res.sites.filter((s) => !s.compliant)
+    const toVerify = nc.slice(0, MAX_VERIFY)
+    if (nc.length > toVerify.length) {
+      log(`declared cap: ${toVerify.length}/${nc.length} non-compliant sites of ${glob} get a skeptic; the rest enter the worklist UNVERIFIED (no silent cap)`)
+    }
+    return parallel(
+          toVerify
             .map((s) => () =>
               agent(
                 `You are a skeptic. Site: ${s.file}:${s.line} — declared NON-compliant with the ` +
                   `convention "${A.pattern}" because: ${s.appliesBecause}. Read the actual ` +
                   `code and try to REFUTE the non-compliance (false positive? legitimate ` +
                   `exception? the pattern does not apply here?). When in doubt: confirmedNonCompliant=false.`,
-                { label: `verify:${s.file}:${s.line}`, phase: 'Verify', schema: VERDICT },
+                { label: `verify:${s.file}:${s.line}`, phase: 'Verify', schema: VERDICT, ...MO },
               ).then((v) => ({ ...s, verdict: v })),
             ),
-        ).then((verified) => ({ glob, sites: res.sites, verified: verified.filter(Boolean) }))
-      : null,
+        ).then((verified) => ({ glob, sites: res.sites,
+          verified: verified.filter(Boolean).concat(
+            nc.slice(MAX_VERIFY).map((s) => ({ ...s, verdict: { confirmedNonCompliant: true, reason: 'beyond maxVerify cap: unverified, kept in worklist' } }))) }))
+  },
 )
 
 const groups = results.filter(Boolean)
