@@ -1,0 +1,1 @@
+{"spec": "fixture", "__plan": {"tasks": [{"id": "a", "dependsOn": [], "brief": {"owns": ["src/a/"], "tools": [], "interfaceFreeze": "x", "doneWhen": "  "}}]}}

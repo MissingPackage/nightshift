@@ -1,0 +1,10 @@
+[Unit]
+Description=Nightly trigger for the Claude harness loop (03:00, R2 pilot)
+
+[Timer]
+OnCalendar=*-*-* 03:00:00
+Persistent=false
+RandomizedDelaySec=10m
+
+[Install]
+WantedBy=timers.target

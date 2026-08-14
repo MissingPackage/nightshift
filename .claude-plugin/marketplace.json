@@ -1,0 +1,28 @@
+{
+  "name": "nightshift",
+  "owner": {
+    "name": "MissingPackage"
+  },
+  "metadata": {
+    "description": "Nightshift — a harness for long-horizon Claude Code work",
+    "version": "1.0.0"
+  },
+  "plugins": [
+    {
+      "name": "nightshift",
+      "version": "1.0.0",
+      "description": "A harness for long-horizon Claude Code work: goals decomposed into loop-runnable phases, hooks that catch the bad session, verified iterations, and decisions that stay yours.",
+      "keywords": [
+        "harness",
+        "orchestration",
+        "hooks",
+        "skills",
+        "agents",
+        "long-horizon",
+        "verification"
+      ],
+      "license": "MIT",
+      "source": "./"
+    }
+  ]
+}

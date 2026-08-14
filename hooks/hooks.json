@@ -1,0 +1,51 @@
+{
+  "description": "Nightshift — mechanical rails: attribution stripping, push policy, firefight catch, session anchoring, loop state, hand-off freshness, loop continuation, notifications.",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          { "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/hooks/strip-ai-attribution.sh" },
+          { "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/hooks/push-guard.sh" }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          { "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/hooks/firefight-catch.sh" }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          { "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/hooks/session-anchor.sh" }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "ScheduleWakeup",
+        "hooks": [
+          { "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/hooks/loop-state.sh" }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          { "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/hooks/handoff-freshness.sh" },
+          { "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/hooks/loop-guard.sh" }
+        ]
+      }
+    ],
+    "Notification": [
+      {
+        "hooks": [
+          { "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/hooks/notify-ntfy.sh" }
+        ]
+      }
+    ]
+  }
+}

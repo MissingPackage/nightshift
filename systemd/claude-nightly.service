@@ -1,0 +1,14 @@
+# claude-nightly.service — R2 pilot on this repo (ruling B2, 2026-07-10).
+# NOT installed by the loop: activation is yours (see docs/nightly-loop.md).
+[Unit]
+Description=Claude Code nightly harness loop (R2 pilot)
+After=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=%h/Projects/harness
+# acceptEdits: the repo defends itself (push-guard deny-all, suite, verifier).
+# Your call whether to tighten to 'default' or widen — it is your machine.
+ExecStart=/bin/bash -lc 'claude -p "$(cat systemd/nightly-prompt.md)" --permission-mode acceptEdits'
+TimeoutStartSec=4h
+Nice=10
