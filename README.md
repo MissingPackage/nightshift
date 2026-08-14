@@ -1,4 +1,21 @@
-# Nightshift
+<p align="center">
+  <img src="assets/nightshift-banner.png" alt="Nightshift" width="820">
+</p>
+
+<p align="center">
+  <em>Your agent works the night shift. You keep the rulings.</em>
+</p>
+
+<p align="center">
+  <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-blue.svg"></a>
+  <img alt="Version" src="https://img.shields.io/badge/version-1.0.0-6c4bf6">
+  <img alt="Claude Code plugin" src="https://img.shields.io/badge/Claude%20Code-plugin%20%2B%20installer-6c4bf6">
+  <img alt="Hook tests" src="https://img.shields.io/badge/hook%20tests-90%20passing-3fb950">
+  <img alt="shellcheck" src="https://img.shields.io/badge/shellcheck-clean-3fb950">
+  <img alt="Skills" src="https://img.shields.io/badge/surface-7%20skills%20%C2%B7%208%20hooks%20%C2%B7%204%20agents-1f6feb">
+</p>
+
+---
 
 **A harness for long-horizon Claude Code work.** Goals decomposed into loop-runnable phases,
 hooks that catch the sessions where discipline usually goes first, iterations verified by an
