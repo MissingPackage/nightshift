@@ -45,7 +45,7 @@ It runs on itself. Every convention here is enforced on this repository by the g
 | **The surface** | 7 skills · 4 agents · 8 commands — named under [Surface](#surface) | small on purpose: descriptions compete for the model's attention |
 
 The protocol is [`ORCHESTRATION.md`](ORCHESTRATION.md) — goals → phases → loops → rulings — and
-[`docs/COOKBOOK.md`](docs/COOKBOOK.md) has eight end-to-end workloads. Plus an installer with
+[`docs/COOKBOOK.md`](docs/COOKBOOK.md) has ten end-to-end workloads. Plus an installer with
 drift detection, a 116-case hook regression suite, a status line, git guards, and systemd units
 for scheduled runs.
 
@@ -141,35 +141,94 @@ phase's mechanical done-when → update PHASES.md, write a digest, refresh `HAND
 schedule the next. State lives in `.harness/goals/<slug>/`, so a crash costs one iteration,
 not the thread.
 
+```mermaid
+flowchart LR
+  A["re-anchor from disk"] --> B["work the first READY phase"]
+  B --> C["loop-verifier grades<br/>the mechanical done-when"]
+  C -->|FAIL| E["fix it now, or docket and stop"]
+  C -->|PASS| D["PHASES.md · digest · HANDOFF §1"]
+  D --> F{"phases left?"}
+  F -->|yes| G["schedule the next iteration"]
+  G --> A
+  F -->|no| H["final check against<br/>the goal contract, then a report"]
+```
+
+**Two loops, different contracts.** `/loop /product-loop` is for shipping: one slice per
+iteration, small enough to implement *and* verify in the same iteration, work on a branch,
+merges are a docket item rather than something it decides alone, and `consistency-sweep` blocks
+a slice that applied a new pattern to only some of its sites. `/loop /research-loop` is for
+finding out: the prediction is pre-registered **before** any spend, cost is estimated on a dry
+run first, results are graded against what was predicted — negative results recorded with the
+same care as positive ones — and two dry iterations hand the work back rather than trying a
+third time.
+
 The loop stops itself in three ways, all deliberate: **all phases done** (final verification
 against the goal contract, then a report), **an authority edge** (docket entry, phase blocked,
 next phase taken), **no progress twice on the same phase** (blocked, then paused with a
-notification). It does not grind until morning.
+notification). It does not grind until morning, and it does not invent scope to stay alive:
+when everything left needs a ruling, stopping *is* the correct ending, and the digest names the
+rulings that are missing.
 
 Read [`ORCHESTRATION.md`](ORCHESTRATION.md) for the state machine, the escalation ladder and
 the unattended test — what the loop is allowed to decide alone, and what it must hand back.
 
-Then read [`docs/COOKBOOK.md`](docs/COOKBOOK.md) for the eight recipes: nightly loop, research
+Then read [`docs/COOKBOOK.md`](docs/COOKBOOK.md) for the ten recipes: nightly loop, research
 campaign, greenfield build, firefight, pattern migration, deploy, second-opinion review, weekly
-maintenance.
+maintenance, taking over a codebase you did not write, and picking up a run that died.
 
 ### Multi-agent work — workflows
 
-The five workflows are **JavaScript, not prompts**. Fan-out, barriers, retries and budgets are
-control flow the script owns, so the shape of a run is decided before it starts rather than by
-an agent in the middle of it. `sdd-conductor` runs spec → task graph → implement/review waves;
-`pattern-migration` maps a convention's sites, fixes them with one agent per exclusive file set,
-and re-runs the count to verify; `second-opinion` puts three independent reviewers and a refuter
-on one branch.
+A workflow is a script that gives a run its **direction**; the run itself stays as dynamic as
+the work is. The script owns the shape — who may run at once, what must finish before what,
+which model does which job, where the ceiling is. What actually happens inside is decided at
+runtime by agents reading real code.
+
+`pattern-migration` is the clearest case. One mapper — a strong model — reads the codebase and
+*returns a plan*: which sites carry the old form, which files each fixer may touch, and whether
+a plain verification could pass while the migration is wrong. The script then spawns **one fixer
+per site the mapper found** — the width is discovered, not written down — gives each an
+exclusive set of files so they cannot collide, and re-runs the mapper's own count command to
+check the result. If the mapper asked for an adversarial pass, it gets exactly one extra
+skeptic. Nothing about that run was fixed in advance except the guarantees.
+
+```mermaid
+flowchart LR
+  M["mapper, strong model<br/>reads the code, returns a plan"] --> P{"N sites, found at runtime"}
+  P --> F1["fixer 1<br/>exclusive files"]
+  P --> F2["fixer 2<br/>exclusive files"]
+  P --> FN["fixer N"]
+  F1 --> V["verifier<br/>re-runs the mapper's count command"]
+  F2 --> V
+  FN --> V
+  V --> X{"did the mapper ask<br/>for an adversarial check?"}
+  X -->|yes| A["one small skeptic"]
+  X -->|no| R["report"]
+  A --> R
+```
+
+`second-opinion` works the same way from the other end: three independent reviewers look at one
+branch — two Claude lenses plus a Codex lens, deliberately a second model family — their
+findings are merged and deduplicated, and then **one refuter is spawned per surviving finding**,
+so the depth of verification follows what was found rather than a number someone guessed. The
+report separates confirmed from refuted and hands you the contested ones, which are the only
+part worth your attention. If the Codex CLI is missing or its auth expired, the gate runs on two
+lenses and says so — never a failure over an absent reviewer.
+
+`sdd-conductor` takes a spec to a task graph validated against the code, then runs
+implement-and-review waves; `research-campaign` runs one work package as pre-registration →
+execution → independent grader → hand-back memo; `pattern-coverage` measures a convention's
+coverage before and after.
+
+What the script guarantees, and an agent improvising cannot: exclusive file ownership inside a
+wave, explicit models per job — never inherited from your session — a hard cap on fan-out, and
+structured results validated against a schema instead of parsed out of prose. That rule about
+models was paid for: one early run left the multiplier to a downstream agent and reached 57
+agents on a pattern a `grep` could have counted.
 
 Each file's header documents its contract, and the agent runs it by name:
 `Workflow({name: "pattern-migration", args: {...}})`. The required args are not folklore —
 `verify-install.sh` fails when a workflow's documented Invoke line stops naming every argument
 its code demands.
-
-Models are explicit in the script and never inherited from the session. That rule was paid for:
-one early run left the multiplier to a downstream agent and reached 57 agents on a pattern a
-`grep` could have counted.
 
 ### Feature work — one session
 

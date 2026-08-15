@@ -1,4 +1,4 @@
-# Cookbook — eight workloads on the same rails
+# Cookbook — ten workloads on the same rails
 
 Each recipe names four things: **when** it applies, the **moves** (exact commands, skills,
 agents), the **judgment that stays yours**, and the **failure path** — because a recipe that
@@ -166,3 +166,52 @@ twenty minutes that keeps the other seven honest.
 
 **If it breaks:** a harness bug found here (a stale HANDOFF, a drifted verifier, a silent hook)
 is treated as an incident: encoded or mechanized the same day.
+
+---
+
+## 9. Taking over a codebase you did not write
+
+**When:** the first goal on a repository someone else built — a legacy service, a handover, an
+open-source project you just cloned.
+
+**Moves:** `/goal-brief <the outcome you want>` and read the draft for its `[ASSUMED]` markers —
+on an unfamiliar codebase those markers are the actual deliverable, because each one is a thing
+the agent had to guess and you can now confirm or correct → `scout` on the area you are about to
+touch, which returns ranked adjacent risks rather than a lint report → run the coverage sensor
+(`workflows/pattern-coverage.workflow.js`) on any convention you intend to follow, so you adopt
+the form the repo already uses instead of importing your own → then the normal loop.
+
+Encode what you learn as you learn it: the project's own `CLAUDE.md` is where a discovered rule
+goes the first time it costs you something. [`templates/CLAUDE.md`](../templates/CLAUDE.md) is
+the starting shape.
+
+**You rule on:** every `[ASSUMED]` marker, and which existing conventions are worth keeping.
+
+**If it breaks:** a phase whose done-when you cannot state mechanically is a phase you do not
+understand yet — split it or block it, rather than letting the loop grade itself on a promise.
+
+---
+
+## 10. Picking up a run that died
+
+**When:** the session crashed, the laptop slept, or it is simply the next morning and you have
+no memory of where it got to.
+
+**Moves:** open a session in the project — `session-anchor` injects `HANDOFF.md` §1 before you
+type anything, and lists the active goals with their open docket counts. Then read the goal's
+own spine in `.harness/goals/<slug>/`: PHASES.md for what is DONE / READY / BLOCKED, the journal
+for what was actually run, digests for the short version. Nothing here was in the conversation,
+so nothing was lost with it.
+
+Two mechanical checks before continuing: `./verify-install.sh` (a fix that exists in the repo
+but was never installed does not run — that has cost two days once), and, for an unattended run,
+`tools/loop-watchdog.sh`, which distinguishes a loop that is quietly working from one whose
+session is dead and restarts only the second kind.
+
+**You rule on:** whether the phase that was in flight resumes or gets re-scoped. A phase
+interrupted mid-iteration is not automatically still the right phase.
+
+**If it breaks:** if `HANDOFF.md` §1 no longer matches what the files say, trust the files and
+rewrite §1 — `handoff-freshness` warns when the anchor has gone stale behind the commits, but
+only the files are evidence.
+
