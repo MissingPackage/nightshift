@@ -1,0 +1,104 @@
+# NOTE: `.github/workflows/` is GitHub Actions. The repository's own `workflows/` directory
+# at the root is something else entirely — Claude Code Workflow scripts. Same word, unrelated
+# things; do not wire one to the other.
+
+name: gates
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  gates:
+    name: gates (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+    steps:
+      - uses: actions/checkout@v4
+
+      # The hook fixtures create throwaway git repos. Runners have no global identity, so
+      # without this the suite fails on `git commit` and looks like a broken gate.
+      - name: Git identity for fixtures
+        run: |
+          git config --global user.email ci@example.com
+          git config --global user.name  ci
+
+      - name: Toolchain
+        run: |
+          bash --version | head -1
+          python3 --version
+          node --version
+          shellcheck --version | sed -n 2p
+
+      # No credential shapes, machine-local paths or personal addresses. First, because a
+      # leak is the only failure here that cannot be undone by a later commit.
+      - name: No secrets
+        run: bash tests/check-no-secrets.sh
+
+      # 90 cases; drives every hook with piped JSON fixtures. Includes workflow validation.
+      - name: Hook regression suite
+        run: bash tests/run.sh
+
+      - name: Reference closure (cookbook names resolve in-repo)
+        run: bash tests/check-references.sh
+
+      - name: Install + verify — default surface
+        run: |
+          export HOME="$(mktemp -d)"
+          "$GITHUB_WORKSPACE/install.sh"
+          "$GITHUB_WORKSPACE/verify-install.sh"
+
+      - name: Install + verify — with vendored skills
+        run: |
+          export HOME="$(mktemp -d)"
+          "$GITHUB_WORKSPACE/install.sh" --with-vendored
+          "$GITHUB_WORKSPACE/verify-install.sh"
+
+      - name: Install + verify — settings merge
+        run: |
+          export HOME="$(mktemp -d)"
+          "$GITHUB_WORKSPACE/install.sh" --settings
+          "$GITHUB_WORKSPACE/verify-install.sh"
+
+      - name: Install + verify — enterprise (no hooks)
+        run: |
+          export HOME="$(mktemp -d)"
+          "$GITHUB_WORKSPACE/install.sh" --enterprise
+          "$GITHUB_WORKSPACE/verify-install.sh" --enterprise
+
+      - name: Install is idempotent
+        run: |
+          export HOME="$(mktemp -d)"
+          "$GITHUB_WORKSPACE/install.sh" > /dev/null
+          "$GITHUB_WORKSPACE/install.sh" | tee /tmp/second.log
+          grep -qE '^install\.sh: 0 installed' /tmp/second.log
+
+      # A sensor is only worth its runtime if it can also say no. This asserts the drift
+      # check FAILS when the installed surface really has diverged — otherwise every green
+      # run above proves only that the check is silent.
+      - name: Drift sensor fails on real drift (negative case)
+        run: |
+          export HOME="$(mktemp -d)"
+          "$GITHUB_WORKSPACE/install.sh" > /dev/null
+          printf '\n# divergence planted by CI\n' >> "$HOME/.claude/hooks/loop-guard.sh"
+          if "$GITHUB_WORKSPACE/verify-install.sh" > /tmp/drift.log 2>&1; then
+            echo "::error::verify-install passed on a surface that had really drifted"
+            cat /tmp/drift.log
+            exit 1
+          fi
+          grep -q 'repo is ahead of the machine' /tmp/drift.log
+          echo "drift correctly detected"
+
+      - name: shellcheck
+        run: |
+          shellcheck -S error \
+            install.sh verify-install.sh \
+            hooks/*.sh tools/*.sh tests/*.sh git-hooks/*

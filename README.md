@@ -7,6 +7,7 @@
 </p>
 
 <p align="center">
+  <a href="https://github.com/MissingPackage/nightshift/actions/workflows/gates.yml"><img alt="gates" src="https://github.com/MissingPackage/nightshift/actions/workflows/gates.yml/badge.svg"></a>
   <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-blue.svg"></a>
   <img alt="Version" src="https://img.shields.io/badge/version-1.0.0-6c4bf6">
   <img alt="Claude Code plugin" src="https://img.shields.io/badge/Claude%20Code-plugin%20%2B%20installer-6c4bf6">
@@ -203,6 +204,9 @@ report and the loop watchdog. See [`docs/nightly-loop.md`](docs/nightly-loop.md)
 ## Contributing
 
 Run `bash tests/run.sh` before opening a PR — 90 cases, hooks driven by piped JSON fixtures.
+CI runs that plus `tests/check-references.sh`, `tests/check-no-secrets.sh`, a sandbox install
+and verify in all four modes, an idempotency check, a negative case proving the drift sensor
+can still fail, and shellcheck. It needs no secrets and requests read-only permissions.
 Hooks follow one shape (`bash` → `python3` heredoc reading hook JSON on fd 3) so the suite can
 drive them. Skills, commands and agents follow the shapes already in `skills/`, `commands/`,
 `agents/`: frontmatter, Overview, steps, Common mistakes.
