@@ -11,7 +11,7 @@
   <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-blue.svg"></a>
   <img alt="Version" src="https://img.shields.io/badge/version-1.0.0-6c4bf6">
   <img alt="Claude Code plugin" src="https://img.shields.io/badge/Claude%20Code-plugin%20%2B%20installer-6c4bf6">
-  <img alt="Hook tests" src="https://img.shields.io/badge/hook%20tests-111%20passing-3fb950">
+  <img alt="Hook tests" src="https://img.shields.io/badge/hook%20tests-116%20passing-3fb950">
   <img alt="shellcheck" src="https://img.shields.io/badge/shellcheck-clean-3fb950">
   <img alt="Skills" src="https://img.shields.io/badge/surface-7%20skills%20%C2%B7%208%20hooks%20%C2%B7%204%20agents-1f6feb">
 </p>
@@ -45,7 +45,7 @@ It runs on itself. Every convention here is enforced on this repository by the g
 | **The protocol** | [`ORCHESTRATION.md`](ORCHESTRATION.md) | goals → phases → loops → rulings |
 | **The recipes** | [`docs/COOKBOOK.md`](docs/COOKBOOK.md) | eight end-to-end workloads |
 
-Plus an installer with drift detection, a 111-case hook regression suite, a status line, git
+Plus an installer with drift detection, a 116-case hook regression suite, a status line, git
 guards, and systemd units for scheduled runs.
 
 **The single idea:** make the good path the default path, so that using it at 11pm requires no
@@ -195,7 +195,7 @@ report and the loop watchdog. See [`docs/nightly-loop.md`](docs/nightly-loop.md)
   comparable to the originals. Rebuilding it properly is the v1.1 milestone. Shipping a
   mistranslated measuring instrument would be worse than shipping none.
 - **The hooks are tested; the skills are less so.** `tests/run.sh` drives every hook with real
-  JSON fixtures (103 cases). Skills are prompt-shaped artifacts and are verified by use, not by
+  JSON fixtures (116 cases). Skills are prompt-shaped artifacts and are verified by use, not by
   assertion.
 - **`--enterprise` is a reduced product, not the same product.** Where managed settings block
   hooks, you keep the file-based surface and lose the mechanical enforcement. What survives and
@@ -208,7 +208,7 @@ report and the loop watchdog. See [`docs/nightly-loop.md`](docs/nightly-loop.md)
 
 ## Contributing
 
-Run `bash tests/run.sh` before opening a PR — 111 cases, hooks driven by piped JSON fixtures.
+Run `bash tests/run.sh` before opening a PR — 116 cases, hooks driven by piped JSON fixtures.
 CI runs that plus `tests/check-references.sh`, `tests/check-no-secrets.sh`, a sandbox install
 and verify in all four modes, an idempotency check, a negative case proving the drift sensor
 can still fail, and shellcheck. It needs no secrets and requests read-only permissions.
