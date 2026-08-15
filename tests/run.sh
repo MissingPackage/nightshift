@@ -312,6 +312,57 @@ t "guard: compound: real push + innocent push-substring segment still denied (H1
 run_hook push-guard.sh "$(json_cmd 'git push origin master && git diff -- .harness/push-policy' "$D")"
 assert_deny
 
+# A heredoc BODY is data, not command (peer session report + repro, 2026-08-15). H1 covered
+# the substring vector; this is a different one: the body's words were lexed as TOKENS, so
+# "run the gate on every push and pull request" in a commit message parsed as
+# `git push and pull` and denied the legitimate push standing next to it. The first repro
+# written for this used && and passed green on the broken hook — the failing shape needs the
+# newline form, because re.split() does not (and must not) split on newlines.
+D=$(pg_proj heredoc 'origin main')
+
+t "guard: heredoc body naming push is not a push; the real one is allowed (newline form)"
+run_hook push-guard.sh "$(json_cmd $'git commit -q -F - <<\'EOF\'\nfeat: gate\n\nrun the gate on every push and pull request\nEOF\ngit push origin main' "$D")"
+assert_silent
+
+t "guard: same shape via && (body lands after the separator)"
+run_hook push-guard.sh "$(json_cmd $'git commit -q -F - <<\'EOF\' && git push origin main\nrun it on every push and pull request\nEOF' "$D")"
+assert_silent
+
+t "guard: embedded source with literal backslash-n does not glue the ref"
+run_hook push-guard.sh "$(json_cmd $'python3 - <<\'PY\'\ncmd = "git commit -F - && git push origin main\\nfeat: gate"\nPY' "$D")"
+assert_silent
+
+t "guard: heredoc feeding a shell keeps its body under watch"
+run_hook push-guard.sh "$(json_cmd $'bash <<\'EOF\'\ngit push origin release/v9\nEOF' "$D")"
+assert_deny
+
+t "guard: shell by absolute path also keeps its body under watch"
+run_hook push-guard.sh "$(json_cmd $'/bin/sh <<\'EOF\'\ngit push origin release/v9\nEOF' "$D")"
+assert_deny
+
+# regression of the fix itself: a bare \bsh\b matched the ".sh" of a path on the opener
+# line, so any command naming a shell script kept its body under the lexer — which is how
+# the commit carrying this very fix got denied
+t "guard: a .sh path on the opener line is not a shell-fed heredoc"
+run_hook push-guard.sh "$(json_cmd $'git add hooks/push-guard.sh && git commit -q -F - <<\'EOF\'\nreported by a peer, a legitimate push of its own\nEOF' "$D")"
+assert_silent
+
+t "guard: unterminated heredoc is fail-closed (the push is still seen)"
+run_hook push-guard.sh "$(json_cmd $'git commit -F - <<\'EOF\'\ngit push origin release/v9' "$D")"
+assert_deny
+
+t "guard: line continuation is whitespace, not a remote named newline"
+run_hook push-guard.sh "$(json_cmd $'git push \\\n  origin main' "$D")"
+assert_silent
+
+t "guard: a second newline-separated push out of policy is judged too"
+run_hook push-guard.sh "$(json_cmd $'git push origin main\ngit push origin release/v9' "$D")"
+assert_deny
+
+t "guard: a second, forced push after a lawful one is judged too"
+run_hook push-guard.sh "$(json_cmd $'git push origin main\ngit push --force origin main' "$D")"
+assert_deny
+
 t "guard: invalid JSON input is a silent no-op"
 run_hook push-guard.sh 'nope'
 assert_silent

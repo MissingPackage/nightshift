@@ -22,6 +22,44 @@ except Exception:
     sys.exit(0)
 
 cmd = (data.get("tool_input") or {}).get("command", "") or ""
+
+# A heredoc BODY is data, not command (false positive reported by a peer session,
+# 2026-08-15): its words were lexed as tokens, so a commit message reading "run the gate
+# on every push and pull request" parsed as `git push and pull` — remote `and`, ref
+# `pull` — and denied a legitimate push in the same command. Exception: when the heredoc
+# feeds a shell or ssh, the body IS commands and stays under watch. An unterminated
+# heredoc changes nothing (fail-closed: a false positive beats an unseen push).
+# the shell must be a COMMAND, not a file extension: a bare \bsh\b also matched the ".sh"
+# of `hooks/push-guard.sh` on the opener line, so any command naming a shell script kept
+# its heredoc body under the lexer — which is how this very fix's commit got denied
+SHELL_FED = re.compile(r"(?:^|[\s;&|(/])(?:(?:ba|z|k|c)?sh|dash|ssh)\b")
+
+
+def strip_heredocs(text):
+    lines = text.split("\n")
+    out, i = [], 0
+    while i < len(lines):
+        line = lines[i]
+        out.append(line)
+        i += 1
+        for m in re.finditer(r"(?<!<)<<(-?)(?!<)\s*(?:'([^']*)'|\"([^\"]*)\"|([A-Za-z_]\w*))", line):
+            if SHELL_FED.search(line[:m.start()]):
+                continue
+            delim = m.group(2) or m.group(3) or m.group(4)
+            j = i
+            while j < len(lines) and lines[j].strip() != delim:
+                j += 1
+            if j >= len(lines):
+                return text
+            i = j + 1
+    return "\n".join(out)
+
+
+cmd = strip_heredocs(cmd)
+# a line continuation is whitespace, but shlex turns `\<newline>` into a literal-newline
+# TOKEN, which then read as the remote: `git push \<nl> origin main` was denied as a push
+# to remote "\n" (pre-existing, found while proving the heredoc fix)
+cmd = re.sub(r"\\\n", " ", cmd)
 if not re.search(r"\bgit\b[^\n|;&]*\bpush\b", cmd):
     sys.exit(0)
 
@@ -45,9 +83,16 @@ for ln in open(policy_path, encoding="utf-8", errors="replace"):
 # compound command each push segment is judged on its own: deny at the first one outside
 # policy (the old "last matching segment" denied innocent gits and could have covered a
 # real push in an earlier segment).
-def is_push_seg(toks):
-    gi = next((i for i, t in enumerate(toks) if t == "git" or t.endswith("/git")), None)
-    return gi is not None and "push" in toks[gi + 1:]
+def push_calls(toks):
+    """Every `push` token that follows a git token, args bounded by the NEXT git token.
+    Segments are not split on newlines (that would break `git push \\<nl> origin main`),
+    so two newline-separated pushes share one segment: judging only the first let an
+    out-of-policy second one through."""
+    git_at = [i for i, t in enumerate(toks) if t == "git" or t.endswith("/git")]
+    for i, t in enumerate(toks):
+        if t != "push" or not any(g < i for g in git_at):
+            continue
+        yield toks[i + 1:next((g for g in git_at if g > i), len(toks))]
 
 pushes = []
 for s in re.split(r"[|;&]|&&|\|\|", cmd):
@@ -55,8 +100,7 @@ for s in re.split(r"[|;&]|&&|\|\|", cmd):
         toks = shlex.split(s)
     except ValueError:
         toks = s.split()
-    if is_push_seg(toks):
-        pushes.append((s, toks))
+    pushes.extend(push_calls(toks))
 if not pushes:
     sys.exit(0)  # "push" was only a substring: no real push in the command
 
@@ -69,10 +113,11 @@ def allowed(remote, ref, forced):
     return False
 
 verdict = None
-for s, toks in pushes:
-    i = toks.index("push")
-    args = [t for t in toks[i + 1:] if not t.startswith("-")]
-    forced = bool(re.search(r"(^|\s)(--force(-with-lease)?|-f)(\s|$)", s))
+for raw in pushes:
+    args = [t for t in raw if not t.startswith("-")]
+    # flags read from THIS push's own args: taking them from the whole segment marked a
+    # second, unforced push in the same segment as forced
+    forced = any(t in ("--force", "--force-with-lease", "-f") for t in raw)
     remote = args[0] if args else "origin"
     ref = args[1] if len(args) > 1 else "*"      # bare push → current branch, unknowable here
     ref = ref.split(":", 1)[-1]                   # src:dst → judge the destination
