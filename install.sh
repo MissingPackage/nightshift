@@ -63,8 +63,25 @@ fi
 # both — so running this installer plainly on a machine that already has the plugin doubles
 # every entry. Refuse by default and name the two ways out; --force is there for the one who
 # is deliberately replacing the plugin with the installer.
-if [ "$PLUGIN" -eq 0 ] && [ "$FORCE" -eq 0 ] &&
-   [ -n "$(find "${DEST}/plugins/cache/nightshift" -maxdepth 4 -name plugin.json 2>/dev/null | head -1)" ]; then
+#
+# The test is ENABLEMENT, not the presence of a cache directory: adding the marketplace, or
+# uninstalling the plugin, leaves ~/.claude/plugins/cache/nightshift behind, and a leftover
+# directory would block installs on a machine with no plugin at all (measured 2026-08-15 on a
+# machine that had only run `marketplace add`). A false negative here costs the warning; a
+# false positive costs the install.
+plugin_enabled() {
+  [ -f "${DEST}/settings.json" ] || return 1
+  python3 - "${DEST}/settings.json" 2>/dev/null <<'PYEOF'
+import json, sys
+try:
+    data = json.load(open(sys.argv[1]))
+except Exception:
+    sys.exit(1)
+enabled = data.get("enabledPlugins") or {}
+sys.exit(0 if any(k.split("@")[0] == "nightshift" and v for k, v in enabled.items()) else 1)
+PYEOF
+}
+if [ "$PLUGIN" -eq 0 ] && [ "$FORCE" -eq 0 ] && plugin_enabled; then
   printf 'install.sh: the nightshift PLUGIN is already installed on this machine.\n' >&2
   printf 'Installing the full surface on top of it duplicates every skill, agent and command.\n' >&2
   printf '  complement it:  ./install.sh --plugin      (or run /nightshift-setup)\n' >&2

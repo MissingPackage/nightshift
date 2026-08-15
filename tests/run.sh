@@ -813,8 +813,8 @@ else bad "double registration not reported"; fi
 
 # The duplication above is reachable by accident — install the plugin, then clone and run the
 # installer the README shows. The default must refuse it, not produce it.
-PCG="$PC/guard"; mkdir -p "$PCG/.claude/plugins/cache/nightshift/nightshift/1.0.0/.claude-plugin"
-printf '{"name":"nightshift"}' > "$PCG/.claude/plugins/cache/nightshift/nightshift/1.0.0/.claude-plugin/plugin.json"
+PCG="$PC/guard"; mkdir -p "$PCG/.claude"
+printf '{"enabledPlugins": {"nightshift@nightshift": true}}\n' > "$PCG/.claude/settings.json"
 
 t "install: refuses the full surface when the plugin is already installed"
 GOUT="$(HOME="$PCG" bash "$ROOT/install.sh" 2>&1)"
@@ -836,6 +836,16 @@ t "verify: a drift check that could not run says so instead of reporting agreeme
 # sensor must not read that silence as "installed surface == repo".
 if HOME="$PCG" bash "$ROOT/verify-install.sh" 2>&1 | grep -q 'drift check could not run'; then ok
 else bad "the refused dry-run was read as a clean surface"; fi
+
+t "install: a leftover plugin cache with the plugin NOT enabled does not block the install"
+# Measured on a real machine: `marketplace add` alone, or an uninstall, leaves the cache
+# directory behind. Keying the guard on that directory blocked installs where no plugin ran.
+PCL="$PC/leftover"; mkdir -p "$PCL/.claude/plugins/cache/nightshift/nightshift/1.0.0/.claude-plugin"
+printf '{"name":"nightshift"}' > "$PCL/.claude/plugins/cache/nightshift/nightshift/1.0.0/.claude-plugin/plugin.json"
+printf '{"enabledPlugins": {"nightshift@nightshift": false}}\n' > "$PCL/.claude/settings.json"
+if HOME="$PCL" bash "$ROOT/install.sh" >/dev/null 2>&1 &&
+   [ -f "$PCL/.claude/skills/root-cause/SKILL.md" ]; then ok
+else bad "a disabled plugin with a leftover cache blocked the installer"; fi
 
 t "/nightshift-setup: the command ships and names the flag it drives"
 if [ -f "$ROOT/commands/nightshift-setup.md" ] &&
