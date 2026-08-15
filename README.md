@@ -141,17 +141,7 @@ phase's mechanical done-when → update PHASES.md, write a digest, refresh `HAND
 schedule the next. State lives in `.harness/goals/<slug>/`, so a crash costs one iteration,
 not the thread.
 
-```mermaid
-flowchart LR
-  A["re-anchor from disk"] --> B["work the first READY phase"]
-  B --> C["loop-verifier grades<br/>the mechanical done-when"]
-  C -->|FAIL| E["fix it now, or docket and stop"]
-  C -->|PASS| D["PHASES.md · digest · HANDOFF §1"]
-  D --> F{"phases left?"}
-  F -->|yes| G["schedule the next iteration"]
-  G --> A
-  F -->|no| H["final check against<br/>the goal contract, then a report"]
-```
+<p align="center"><img src="assets/loop-iteration.svg" alt="One iteration: re-anchor from disk, work the first READY phase, loop-verifier grades the mechanical done-when, then either fix/docket on FAIL or update PHASES and schedule the next iteration" width="900"></p>
 
 **Two loops, different contracts.** `/loop /product-loop` is for shipping: one slice per
 iteration, small enough to implement *and* verify in the same iteration, work on a branch,
@@ -191,20 +181,7 @@ exclusive set of files so they cannot collide, and re-runs the mapper's own coun
 check the result. If the mapper asked for an adversarial pass, it gets exactly one extra
 skeptic. Nothing about that run was fixed in advance except the guarantees.
 
-```mermaid
-flowchart LR
-  M["mapper, strong model<br/>reads the code, returns a plan"] --> P{"N sites, found at runtime"}
-  P --> F1["fixer 1<br/>exclusive files"]
-  P --> F2["fixer 2<br/>exclusive files"]
-  P --> FN["fixer N"]
-  F1 --> V["verifier<br/>re-runs the mapper's count command"]
-  F2 --> V
-  FN --> V
-  V --> X{"did the mapper ask<br/>for an adversarial check?"}
-  X -->|yes| A["one small skeptic"]
-  X -->|no| R["report"]
-  A --> R
-```
+<p align="center"><img src="assets/workflow-pattern-migration.svg" alt="pattern-migration: one mapper returns a plan, one fixer per site found at runtime each with an exclusive set of files, one verifier that re-runs the mapper's count command, and an adversarial skeptic only when the mapper asked for one" width="900"></p>
 
 `second-opinion` works the same way from the other end: three independent reviewers look at one
 branch — two Claude lenses plus a Codex lens, deliberately a second model family — their
@@ -214,10 +191,25 @@ report separates confirmed from refuted and hands you the contested ones, which 
 part worth your attention. If the Codex CLI is missing or its auth expired, the gate runs on two
 lenses and says so — never a failure over an absent reviewer.
 
-`sdd-conductor` takes a spec to a task graph validated against the code, then runs
-implement-and-review waves; `research-campaign` runs one work package as pre-registration →
-execution → independent grader → hand-back memo; `pattern-coverage` measures a convention's
-coverage before and after.
+`sdd-conductor` is the deepest of the five: a spec becomes working code without you brokering
+the middle. The plan agent returns a task graph, and the graph is validated **in code** before a
+single line is written — file ownership must be disjoint, dependencies acyclic, and every task's
+done-when mechanically checkable. A plan that fails those checks is rejected by the runner, not
+by another model's opinion of it. Waves fall out of the dependencies, and the tasks in a wave
+run at once.
+
+<p align="center"><img src="assets/workflow-sdd-conductor.svg" alt="sdd-conductor: spec to task graph validated in code, then per wave each task gets an isolated copy with a RED phase first, returns a patch plus evidence, goes through two rounds of adversarial review, and is either blocked and docketed or integrated by patch-apply in wave order with the project suite after each wave" width="960"></p>
+
+Each implementer works on its own copy of the project and returns a unified diff — it never
+touches the shared tree — with a RED phase first whenever the done-when is testable. Only the
+integrator applies patches, sequentially, in wave order, and a conflict blocks that task instead
+of being auto-resolved. Two rounds of adversarial review stand between a patch and the tree, and
+a surviving critical finding blocks the task **without stopping the build**: it comes back as a
+docket entry, and the rest of the wave lands. The project's own suite runs after every wave, so
+a build that went wrong is caught at the wave that broke it rather than at the end.
+
+`research-campaign` runs one work package as pre-registration → execution → independent grader →
+hand-back memo; `pattern-coverage` measures a convention's coverage before and after.
 
 What the script guarantees, and an agent improvising cannot: exclusive file ownership inside a
 wave, explicit models per job — never inherited from your session — a hard cap on fan-out, and

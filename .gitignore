@@ -4,3 +4,7 @@
 __pycache__/
 *.pyc
 .pytest_cache/
+
+# diagram generation (tools/make-diagrams.mjs): fetched font + npm deps, never committed
+.diagram-font/
+node_modules/
