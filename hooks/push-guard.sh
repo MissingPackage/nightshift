@@ -29,10 +29,18 @@ cmd = (data.get("tool_input") or {}).get("command", "") or ""
 # `pull` — and denied a legitimate push in the same command. Exception: when the heredoc
 # feeds a shell or ssh, the body IS commands and stays under watch. An unterminated
 # heredoc changes nothing (fail-closed: a false positive beats an unseen push).
-# the shell must be a COMMAND, not a file extension: a bare \bsh\b also matched the ".sh"
-# of `hooks/push-guard.sh` on the opener line, so any command naming a shell script kept
-# its heredoc body under the lexer — which is how this very fix's commit got denied
+# The shell must be a COMMAND, not a file extension: a bare \bsh\b also matched the ".sh"
+# of `hooks/push-guard.sh` on the opener line. And it must be THE command the heredoc is
+# attached to — that is the last one opened before the `<<`, not any shell named earlier
+# in the chain: in `bash gate.sh && git commit -F - <<EOF` the body belongs to git commit,
+# and scanning the whole line kept it under the lexer. Both shapes denied a commit that
+# carried a fix for this very hook (peer session, 2026-08-15).
 SHELL_FED = re.compile(r"(?:^|[\s;&|(/])(?:(?:ba|z|k|c)?sh|dash|ssh)\b")
+SEPARATOR = re.compile(r"\|\||&&|[;|&]")
+
+
+def shell_fed(prefix):
+    return bool(SHELL_FED.search(SEPARATOR.split(prefix)[-1]))
 
 
 def strip_heredocs(text):
@@ -43,7 +51,7 @@ def strip_heredocs(text):
         out.append(line)
         i += 1
         for m in re.finditer(r"(?<!<)<<(-?)(?!<)\s*(?:'([^']*)'|\"([^\"]*)\"|([A-Za-z_]\w*))", line):
-            if SHELL_FED.search(line[:m.start()]):
+            if shell_fed(line[:m.start()]):
                 continue
             delim = m.group(2) or m.group(3) or m.group(4)
             j = i

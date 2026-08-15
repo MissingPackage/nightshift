@@ -347,6 +347,22 @@ t "guard: a .sh path on the opener line is not a shell-fed heredoc"
 run_hook push-guard.sh "$(json_cmd $'git add hooks/push-guard.sh && git commit -q -F - <<\'EOF\'\nreported by a peer, a legitimate push of its own\nEOF' "$D")"
 assert_silent
 
+# the heredoc belongs to the LAST command opened before the <<, not to any shell named
+# earlier in the chain: `bash gate.sh && git commit -F - <<EOF` is the shape of every
+# repo with a suite (run the gate, commit, push) and it was denied
+t "guard: a real shell earlier in the chain does not own git commit's heredoc"
+run_hook push-guard.sh "$(json_cmd $'bash tests/run.sh && git commit -q -F - <<\'EOF\' && git push origin main\nrun it on every push and pull request\nEOF' "$D")"
+assert_silent
+
+t "guard: shell at the tail of a pipe does own its heredoc"
+run_hook push-guard.sh "$(json_cmd $'cat prelude.txt | bash <<\'EOF\'\ngit push origin release/v9\nEOF' "$D")"
+assert_deny
+
+t "guard: shell as the last command of a chain does own its heredoc"
+run_hook push-guard.sh "$(json_cmd $'git add -A && bash <<\'EOF\'\ngit push origin release/v9\nEOF' "$D")"
+assert_deny
+
+
 t "guard: unterminated heredoc is fail-closed (the push is still seen)"
 run_hook push-guard.sh "$(json_cmd $'git commit -F - <<\'EOF\'\ngit push origin release/v9' "$D")"
 assert_deny
