@@ -13,7 +13,7 @@
   <img alt="Claude Code plugin" src="https://img.shields.io/badge/Claude%20Code-plugin%20%2B%20installer-6c4bf6">
   <img alt="Hook tests" src="https://img.shields.io/badge/hook%20tests-116%20passing-3fb950">
   <img alt="shellcheck" src="https://img.shields.io/badge/shellcheck-clean-3fb950">
-  <img alt="Skills" src="https://img.shields.io/badge/surface-7%20skills%20%C2%B7%208%20hooks%20%C2%B7%204%20agents-1f6feb">
+  <img alt="Machine" src="https://img.shields.io/badge/goals%20%C2%B7%20loops%20%C2%B7%20verified%20iterations-1f6feb">
 </p>
 
 ---
@@ -37,19 +37,36 @@ It runs on itself. Every convention here is enforced on this repository by the g
 
 | | | |
 |---|---|---|
-| **7 skills** | `root-cause` · `done` · `handoff` · `loop-iteration` · `goal-setup` · `spec-first` · `peripheral-vision` | discipline that triggers on its own |
-| **8 hooks** | `firefight-catch` · `session-anchor` · `push-guard` · `strip-ai-attribution` · `handoff-freshness` · `loop-guard` · `loop-state` · `notify-ntfy` | mechanical rails, not reminders |
-| **4 agents** | `loop-verifier` · `adversarial-reviewer` · `scout` · `consistency-sweep` | independent verification with its own context |
-| **8 commands** | `/goal-brief` · `/handoff` · `/morning` · `/pr-message` · `/product-loop` · `/research-loop` · `/weekly-maintenance` · `/nightshift-setup` | the rituals, automated |
-| **5 workflows** | `sdd-conductor` · `pattern-coverage` · `pattern-migration` · `second-opinion` · `research-campaign` | deterministic multi-agent orchestration |
-| **The protocol** | [`ORCHESTRATION.md`](ORCHESTRATION.md) | goals → phases → loops → rulings |
-| **The recipes** | [`docs/COOKBOOK.md`](docs/COOKBOOK.md) | eight end-to-end workloads |
+| **Work that outlives the session** | goals decomposed into phases, state in `.harness/goals/<slug>/` | a crash costs one iteration, not the thread |
+| **Iterations graded by someone else** | `loop-verifier`, own context, read-only | a phase closes on its mechanical done-when, not on the agent's word for it |
+| **A loop that runs unattended** | re-anchor → work the phase → verify → schedule the next | it keeps itself alive across sessions, and stops itself three ways |
+| **Deterministic multi-agent orchestration** | 5 workflows: `sdd-conductor` · `pattern-migration` · `pattern-coverage` · `second-opinion` · `research-campaign` | scripts with real control flow, not a prompt asking for parallelism |
+| **Rails you never invoke** | 8 hooks, fired by events | discipline that survives the hour when you have none |
+| **The surface** | 7 skills · 4 agents · 8 commands — named under [Surface](#surface) | small on purpose: descriptions compete for the model's attention |
 
-Plus an installer with drift detection, a 116-case hook regression suite, a status line, git
-guards, and systemd units for scheduled runs.
+The protocol is [`ORCHESTRATION.md`](ORCHESTRATION.md) — goals → phases → loops → rulings — and
+[`docs/COOKBOOK.md`](docs/COOKBOOK.md) has eight end-to-end workloads. Plus an installer with
+drift detection, a 116-case hook regression suite, a status line, git guards, and systemd units
+for scheduled runs.
 
 **The single idea:** make the good path the default path, so that using it at 11pm requires no
 willpower.
+
+---
+
+## Why this is not a skill collection
+
+Three things a set of prompts cannot do, all of them mechanical:
+
+- **A phase does not close because the agent says it did.** `loop-verifier` runs in a separate
+  context, reads the phase's done-when, and returns PASS or FAIL with the command it ran. The
+  loop cannot mark its own homework, which is the failure that makes long runs worthless.
+- **The loop knows when to stop.** All phases done, an authority edge it must not cross on its
+  own, or no progress twice on the same phase — it stops and tells you, instead of spending the
+  night on a phase that is not moving.
+- **A fix that exists in the repo but is not installed does not exist.** `verify-install.sh`
+  compares the installed surface against the source and fails when they diverge — a real
+  two-day divergence is why that check is there, and CI proves it can still say no.
 
 ---
 
@@ -109,21 +126,6 @@ that `settings.json` is valid JSON.
 
 ## Using it
 
-### Interrupt work — the 11pm path
-
-Nothing to invoke. Paste the error. `firefight-catch` sees the shape of the message — bare
-polling, a 4KB traceback with no framing, fix-verbs with no cause named, the same message sent
-twice in three minutes — and injects the rails. `root-cause` then blocks any edit until the
-agent can complete *"it fails because ___, shown by ___"*, and it acquires its own observations
-instead of asking you to re-test.
-
-### Feature work — one session
-
-`brainstorming` if the design is open → `spec-first` → implement → the `done` skill produces a
-report you can audit: commands actually run with their real outcomes, what was **not** verified
-and why, and what you should check by hand. A "done" without evidence is the failure mode this
-exists to make impossible.
-
 ### Long-horizon work — goals and loops
 
 ```sh
@@ -144,13 +146,46 @@ against the goal contract, then a report), **an authority edge** (docket entry, 
 next phase taken), **no progress twice on the same phase** (blocked, then paused with a
 notification). It does not grind until morning.
 
-Read [`ORCHESTRATION.md`](ORCHESTRATION.md) for the state machine, the escalation ladder, the
-unattended test, and the atrophy ledger — the section that names what automating judgment costs
-you, instead of pretending it costs nothing.
+Read [`ORCHESTRATION.md`](ORCHESTRATION.md) for the state machine, the escalation ladder and
+the unattended test — what the loop is allowed to decide alone, and what it must hand back.
 
 Then read [`docs/COOKBOOK.md`](docs/COOKBOOK.md) for the eight recipes: nightly loop, research
 campaign, greenfield build, firefight, pattern migration, deploy, second-opinion review, weekly
 maintenance.
+
+### Multi-agent work — workflows
+
+The five workflows are **JavaScript, not prompts**. Fan-out, barriers, retries and budgets are
+control flow the script owns, so the shape of a run is decided before it starts rather than by
+an agent in the middle of it. `sdd-conductor` runs spec → task graph → implement/review waves;
+`pattern-migration` maps a convention's sites, fixes them with one agent per exclusive file set,
+and re-runs the count to verify; `second-opinion` puts three independent reviewers and a refuter
+on one branch.
+
+Each file's header documents its contract, and the agent runs it by name:
+`Workflow({name: "pattern-migration", args: {...}})`. The required args are not folklore —
+`verify-install.sh` fails when a workflow's documented Invoke line stops naming every argument
+its code demands.
+
+Models are explicit in the script and never inherited from the session. That rule was paid for:
+one early run left the multiplier to a downstream agent and reached 57 agents on a pattern a
+`grep` could have counted.
+
+### Feature work — one session
+
+`brainstorming` if the design is open → `spec-first` → implement → the `done` skill produces a
+report you can audit: commands actually run with their real outcomes, what was **not** verified
+and why, and what you should check by hand. A "done" without evidence is the failure mode this
+exists to make impossible.
+
+### Interrupt work — the 11pm path
+
+Nothing to invoke. Paste the error. `firefight-catch` sees the shape of the message — bare
+polling, a 4KB traceback with no framing, fix-verbs with no cause named, the same message sent
+twice in three minutes — and injects the rails. `root-cause` then blocks any edit until the
+agent can complete *"it fails because ___, shown by ___"*, and it acquires its own observations
+instead of asking you to re-test.
+
 
 ---
 
@@ -200,11 +235,27 @@ report and the loop watchdog. See [`docs/nightly-loop.md`](docs/nightly-loop.md)
 - **`--enterprise` is a reduced product, not the same product.** Where managed settings block
   hooks, you keep the file-based surface and lose the mechanical enforcement. What survives and
   what does not is enumerated in [`docs/ENTERPRISE.md`](docs/ENTERPRISE.md).
-- **Skill count is a budget, not a score.** The installed surface is deliberately small.
-  Descriptions compete for the model's attention, and twenty skills means none of them trigger
-  reliably.
 
 ---
+
+## Surface
+
+What lands in `~/.claude`, by kind:
+
+- **7 skills** — `root-cause` · `done` · `handoff` · `loop-iteration` · `goal-setup` ·
+  `spec-first` · `peripheral-vision`. They trigger on their own; none of them needs invoking.
+- **8 hooks** — `firefight-catch` · `session-anchor` · `push-guard` · `strip-ai-attribution` ·
+  `handoff-freshness` · `loop-guard` · `loop-state` · `notify-ntfy`.
+- **4 agents** — `loop-verifier` · `adversarial-reviewer` · `scout` · `consistency-sweep`. Each
+  gets its own context, which is the point: a reviewer sharing the author's context reviews its
+  own reasoning.
+- **8 commands** — `/goal-brief` · `/handoff` · `/morning` · `/pr-message` · `/product-loop` ·
+  `/research-loop` · `/weekly-maintenance` · `/nightshift-setup`.
+- **5 workflows** — `sdd-conductor` · `pattern-migration` · `pattern-coverage` ·
+  `second-opinion` · `research-campaign`.
+
+The skill count is a budget, not a score. Descriptions compete for the model's attention, and
+twenty skills means none of them fire reliably.
 
 ## Contributing
 
