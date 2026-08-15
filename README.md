@@ -109,6 +109,16 @@ cd nightshift
 Existing files that differ are backed up to `~/.claude/nightshift-backup-<epoch>/` before
 overwrite; unchanged files are skipped, so a re-run reports `0 installed`.
 
+### The global `CLAUDE.md` (both channels)
+
+Neither channel touches `~/.claude/CLAUDE.md` — that file is yours, and no installer
+should be merging prose into it. But the harness was not designed in a vacuum: the author
+runs it paired with the global rules in [`templates/CLAUDE.md`](templates/CLAUDE.md), and
+several conventions here (the debugging contract, the completion contract, act-then-report)
+assume something like it is in force. Copy the template, fill the `⟨FILL⟩` slots, then
+either merge it into your existing file or replace yours with it — which of the two is
+right is your call, not the installer's.
+
 ### Verify it took (2 minutes)
 
 `./verify-install.sh` checks the files. These four check the behaviour:
