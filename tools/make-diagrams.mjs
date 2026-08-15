@@ -290,13 +290,13 @@ writeFileSync('assets/workflow-second-opinion.svg', scene(1040, 440, (d) => {
 
 // --- 7. the whole flow ------------------------------------------------------
 writeFileSync('assets/full-flow.svg', scene(1180, 1560, (d) => {
-  d.title('one goal, end to end — and every hook that fires without being asked', 24, 40)
+  d.title('one goal, end to end', 24, 40)
 
   // rails
   d.note('HOOKS', 40, 92)
-  d.note('nothing invokes them', 40, 112)
+  d.note('and the event they fire on', 40, 112)
   d.note('YOUR RULINGS', 946, 92)
-  d.note('the loop waits, it does not guess', 946, 112)
+  d.note('where it stops and waits', 946, 112)
 
   // --- setting it up
   d.box(300, 130, 250, 60, ['brainstorming'], GREY, 16)
