@@ -751,6 +751,72 @@ t "check-workflows: mechanical validation of workflows/*.workflow.js"
 if bash "$ROOT/tests/check-workflows.sh" >/dev/null 2>&1; then ok
 else bad "$(bash "$ROOT/tests/check-workflows.sh" 2>&1 | grep '^FAIL' | head -3)"; fi
 
+echo "== plugin complement: what a plugin cannot carry, and must not carry twice =="
+# The plugin channel delivers skills/agents/commands/hooks and nothing else — no workflows,
+# no ORCHESTRATION.md at the path the skills cite, no statusLine. install.sh --plugin fills
+# exactly that gap and refuses to install what the plugin already owns, because a second copy
+# of a hook is a hook that fires twice. Every case below fails against a version without the
+# flag (unknown flag ⇒ exit 2), which is what makes them evidence rather than decoration.
+PC="$SANDBOX/plugin-complement"
+
+t "install --plugin: installs workflows + ORCHESTRATION.md + hud"
+PC1="$PC/a"; mkdir -p "$PC1"
+HOME="$PC1" bash "$ROOT/install.sh" --plugin >/dev/null 2>&1
+if [ -f "$PC1/.claude/workflows/sdd-conductor.workflow.js" ] &&
+   [ -f "$PC1/.claude/ORCHESTRATION.md" ] &&
+   [ -f "$PC1/.claude/hud/nightshift-hud.mjs" ]; then ok
+else bad "complement incomplete: $(find "$PC1/.claude" -type f 2>/dev/null | wc -l) files installed"; fi
+
+t "install --plugin: installs NOTHING the plugin already provides"
+# The ORCHESTRATION.md precondition is load-bearing: without it a version that refuses the
+# flag and installs nothing at all would pass this case for the wrong reason.
+dupes=""
+for p in hooks skills agents commands; do
+  [ -d "$PC1/.claude/$p" ] && dupes="$dupes $p"
+done
+if [ -f "$PC1/.claude/ORCHESTRATION.md" ] && [ -z "$dupes" ]; then ok
+elif [ ! -f "$PC1/.claude/ORCHESTRATION.md" ]; then bad "nothing was installed at all — vacuous pass avoided"
+else bad "plugin-owned dirs created by the complement:$dupes"; fi
+
+t "install --plugin --settings: sets statusLine, writes NO hooks block (double-firing guard)"
+PC2="$PC/b"; mkdir -p "$PC2"
+HOME="$PC2" bash "$ROOT/install.sh" --plugin --settings >/dev/null 2>&1
+if grep -q 'nightshift-hud' "$PC2/.claude/settings.json" 2>/dev/null &&
+   ! grep -q 'firefight-catch' "$PC2/.claude/settings.json" 2>/dev/null; then ok
+else bad "settings.json wrong: $(tr -d '\n' < "$PC2/.claude/settings.json" 2>/dev/null | head -c 200)"; fi
+
+t "install: --plugin and --enterprise are refused together, and says why"
+# Asserting only the non-zero exit would pass on a version that rejects --plugin as unknown:
+# same verdict, different reason. The message is what discriminates.
+XOUT="$(HOME="$PC/c" bash "$ROOT/install.sh" --plugin --enterprise 2>&1)"
+if [ -n "$XOUT" ] && printf '%s' "$XOUT" | grep -q -- '--enterprise excludes --plugin'; then ok
+else bad "expected the exclusivity message, got: ${XOUT:0:120}"; fi
+
+t "verify --plugin: PASSes on a complement-only surface"
+if HOME="$PC2" bash "$ROOT/verify-install.sh" --plugin >/dev/null 2>&1; then ok
+else bad "$(HOME="$PC2" bash "$ROOT/verify-install.sh" --plugin 2>&1 | grep '^FAIL' | head -2)"; fi
+
+t "verify --plugin: FAILs when the plugin-owned surface is duplicated in ~/.claude"
+PC3="$PC/d"; mkdir -p "$PC3"
+HOME="$PC3" bash "$ROOT/install.sh" --plugin >/dev/null 2>&1
+HOME="$PC3" bash "$ROOT/install.sh" >/dev/null 2>&1     # the mistake: both channels, one machine
+# Again the message, not the exit code: an unknown-flag exit 2 is also non-zero.
+if HOME="$PC3" bash "$ROOT/verify-install.sh" --plugin 2>&1 | grep -q 'plugin-owned surface duplicated'; then ok
+else bad "the duplicated surface was not named"; fi
+
+t "verify --plugin: FAILs when settings.json registers hooks the plugin already registers"
+PC4="$PC/e"; mkdir -p "$PC4"
+HOME="$PC4" bash "$ROOT/install.sh" --plugin >/dev/null 2>&1
+HOME="$PC4" bash "$ROOT/install.sh" --settings >/dev/null 2>&1   # merges the hooks block too
+if HOME="$PC4" bash "$ROOT/verify-install.sh" --plugin 2>&1 | grep -q 'hooks registered twice'; then ok
+else bad "double registration not reported"; fi
+
+t "/nightshift-setup: the command ships and names the flag it drives"
+if [ -f "$ROOT/commands/nightshift-setup.md" ] &&
+   grep -q -- '--plugin' "$ROOT/commands/nightshift-setup.md" &&
+   grep -q 'CLAUDE_PLUGIN_ROOT' "$ROOT/commands/nightshift-setup.md"; then ok
+else bad "commands/nightshift-setup.md missing or does not drive install.sh --plugin"; fi
+
 echo
 printf '== summary: %d pass, %d fail, %d known-gap ==\n' "$PASS" "$FAIL" "$GAP"
 [ "$FAIL" -eq 0 ]

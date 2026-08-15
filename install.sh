@@ -7,6 +7,12 @@
 #   ./install.sh                 install hooks/skills/agents/commands/workflows/hud into ~/.claude
 #   ./install.sh --settings      ...and also safely MERGE hooks + statusLine into settings.json
 #                                (idempotent, backs up, never clobbers other keys or a custom statusLine)
+#   ./install.sh --plugin        complement an installed PLUGIN: only what a plugin cannot carry
+#                                (workflows, statusline, ORCHESTRATION.md). Skills/agents/commands/
+#                                hooks are skipped — the plugin already provides them, and a second
+#                                copy in ~/.claude would double every hook and every entry. With
+#                                --settings it merges the statusLine ONLY, never the hooks block.
+#                                Driven for you by the /nightshift-setup command.
 #   ./install.sh --with-vendored ...and also the four vendored superpowers skills
 #                                (third-party, MIT — see skills/vendored/README.md). Off by
 #                                default: the default surface is 100% this project's own work.
@@ -28,17 +34,23 @@ DRY=0
 SETTINGS=0
 ENTERPRISE=0
 VENDORED=0
+PLUGIN=0
 for arg in "$@"; do
   case "$arg" in
     --dry-run) DRY=1 ;;
     --settings) SETTINGS=1 ;;
     --enterprise) ENTERPRISE=1 ;;
     --with-vendored) VENDORED=1 ;;
+    --plugin) PLUGIN=1 ;;
     *) printf 'install.sh: unknown flag: %s\n' "$arg" >&2; exit 2 ;;
   esac
 done
 if [ "$ENTERPRISE" -eq 1 ] && [ "$SETTINGS" -eq 1 ]; then
   printf 'install.sh: --enterprise excludes --settings (the settings merge only carries hooks+statusLine, both blocked there)\n' >&2
+  exit 2
+fi
+if [ "$ENTERPRISE" -eq 1 ] && [ "$PLUGIN" -eq 1 ]; then
+  printf 'install.sh: --enterprise excludes --plugin (managed settings that block hooks block a plugin too; install the file surface plainly)\n' >&2
   exit 2
 fi
 
@@ -72,8 +84,10 @@ copy_one() {
   say "installed: ${d#"$HOME"/}"
 }
 
-# hooks (executable) — skipped in enterprise mode (managed settings block them)
-if [ "$ENTERPRISE" -eq 0 ]; then
+# hooks (executable) — skipped in enterprise mode (managed settings block them) and in
+# plugin mode (hooks/hooks.json already registered them from the plugin root: a second
+# copy here plus a settings entry makes every hook fire twice)
+if [ "$ENTERPRISE" -eq 0 ] && [ "$PLUGIN" -eq 0 ]; then
   for f in "$SRC"/hooks/*.sh; do
     copy_one "$f" "$DEST/hooks/$(basename "$f")" exec
   done
@@ -82,8 +96,11 @@ fi
 # skills — own always, vendored only with --with-vendored (third-party; see
 # skills/vendored/README.md). Recursive: vendored skills nest scripts/ and examples/.
 # The vendored/ dir itself is a container, not a skill.
-SKILL_DIRS=("$SRC"/skills/*/)
-[ "$VENDORED" -eq 1 ] && SKILL_DIRS+=("$SRC"/skills/vendored/*/)
+# In plugin mode the plugin owns the own skills; the vendored four are nested one level
+# deeper than plugin discovery reaches, so they stay this installer's job when asked for.
+SKILL_DIRS=("$SRC"/skills/vendored/*/)   # never empty: keeps set -u happy on bash 3.2
+[ "$VENDORED" -eq 0 ] && SKILL_DIRS=("$SRC"/skills/vendored)   # a container, skipped below
+[ "$PLUGIN" -eq 0 ] && SKILL_DIRS+=("$SRC"/skills/*/)
 for d in "${SKILL_DIRS[@]}"; do
   [ -d "$d" ] || continue
   name="$(basename "$d")"
@@ -99,20 +116,23 @@ for d in "${SKILL_DIRS[@]}"; do
   done < <(find "$d" -type f -print0)
 done
 
-# protocol reference — skills cite "ORCHESTRATION.md §2"; without this copy the
+# protocol reference — skills cite "~/.claude/ORCHESTRATION.md §2"; without this copy the
 # reference is dead in the installed surface (found 2026-08-13 by a session following
-# the protocol by reconstructing it from second-hand citations in the dockets).
+# the protocol by reconstructing it from second-hand citations in the dockets). Installed in
+# EVERY mode, plugin included: the citation names a path in ~/.claude, and a plugin puts its
+# own copy somewhere the skill never looks.
 copy_one "$SRC/ORCHESTRATION.md" "$DEST/ORCHESTRATION.md"
 
-# agents
-for f in "$SRC"/agents/*.md; do
-  copy_one "$f" "$DEST/agents/$(basename "$f")"
-done
+# agents + commands — the plugin carries both; a second copy would show every entry twice
+if [ "$PLUGIN" -eq 0 ]; then
+  for f in "$SRC"/agents/*.md; do
+    copy_one "$f" "$DEST/agents/$(basename "$f")"
+  done
 
-# commands
-for f in "$SRC"/commands/*.md; do
-  copy_one "$f" "$DEST/commands/$(basename "$f")"
-done
+  for f in "$SRC"/commands/*.md; do
+    copy_one "$f" "$DEST/commands/$(basename "$f")"
+  done
+fi
 
 # executable workflows — docs/COOKBOOK.md stays documentation, not installed
 for f in "$SRC"/workflows/*.workflow.js; do
@@ -136,9 +156,10 @@ say "install.sh: ${installed} installed, ${skipped} unchanged, ${backed_up} back
 # settings.json and stay manual. bash -> python3 heredoc (repo hook convention).
 if [ "$SETTINGS" -eq 1 ]; then
   say ""
-  DEST="$DEST" DRY="$DRY" python3 - <<'PY'
+  DEST="$DEST" DRY="$DRY" PLUGIN="$PLUGIN" python3 - <<'PY'
 import json, os, sys, shutil, time
 DEST = os.environ["DEST"]; DRY = os.environ.get("DRY") == "1"
+PLUGIN = os.environ.get("PLUGIN") == "1"
 sp = os.path.join(DEST, "settings.json")
 HOOKS = {
     "PreToolUse": [("Bash", ["strip-ai-attribution.sh", "push-guard.sh"])],
@@ -167,8 +188,11 @@ def basenames(lst):
             if c:
                 s.add(os.path.basename(c[-1]))
     return s
-hooks_obj = data.setdefault("hooks", {})
-for event, groups in HOOKS.items():
+# plugin mode: hooks/hooks.json already registered every hook from the plugin root. Writing
+# them here too means each one fires TWICE — two anchors injected, two policy verdicts on one
+# push. The statusLine is the only thing a plugin cannot set, so it is the only thing merged.
+hooks_obj = data.setdefault("hooks", {}) if not PLUGIN else {}
+for event, groups in (HOOKS.items() if not PLUGIN else []):
     ev = hooks_obj.setdefault(event, [])
     have = basenames(ev)
     for matcher, scripts in groups:
@@ -212,7 +236,11 @@ if os.path.isfile(sp):
 json.dump(data, open(sp, "w"), indent=2)
 print("settings-merge: wrote %d change(s) to settings.json" % len(changes))
 PY
-  say "plugins/MCP stay manual — they are not settings.json."
+  if [ "$PLUGIN" -eq 1 ]; then
+    say "plugin mode: statusLine only — the hooks stay registered by the plugin, not by settings.json."
+  else
+    say "plugins/MCP stay manual — they are not settings.json."
+  fi
 elif [ "$ENTERPRISE" -eq 1 ]; then
   say "enterprise mode: hooks NOT installed, settings.json untouched. What you lose (full matrix: docs/ENTERPRISE.md §2):"
   say "  - session-anchor (HANDOFF §1 injection)      -> project CLAUDE.md instruction only (compliance)"
@@ -223,12 +251,17 @@ elif [ "$ENTERPRISE" -eq 1 ]; then
   say "  - notify-ntfy (phone push)                   -> native OS notifications"
   say "  - statusline nightshift-hud                     -> dead under disableAllHooks; maybe alive under allowManagedHooksOnly (§5.3)"
   say "on-site policy checklist: docs/ENTERPRISE.md §5 · global CLAUDE.md stays manual (§C.2)"
+elif [ "$PLUGIN" -eq 1 ]; then
+  say "manual step: settings.json — run with --plugin --settings to set the statusLine"
+  say "(the hooks are already registered by the plugin; this merge never touches them)."
 else
   say "manual step: settings.json — run with --settings to merge hooks+statusLine"
   say "automatically (idempotent) · plugins/MCP (§C.7) · per-project files (§C.8)."
 fi
 if [ "$ENTERPRISE" -eq 1 ]; then
   say "next: ./verify-install.sh --enterprise"
+elif [ "$PLUGIN" -eq 1 ]; then
+  say "next: ./verify-install.sh --plugin"
 else
   say "next: ./verify-install.sh"
 fi

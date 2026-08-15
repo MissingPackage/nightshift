@@ -43,7 +43,8 @@ jobs:
       - name: No secrets
         run: bash tests/check-no-secrets.sh
 
-      # 90 cases; drives every hook with piped JSON fixtures. Includes workflow validation.
+      # 111 cases; drives every hook with piped JSON fixtures. Includes workflow validation
+      # and the install modes' negative cases.
       - name: Hook regression suite
         run: bash tests/run.sh
 
@@ -73,6 +74,29 @@ jobs:
           export HOME="$(mktemp -d)"
           "$GITHUB_WORKSPACE/install.sh" --enterprise
           "$GITHUB_WORKSPACE/verify-install.sh" --enterprise
+
+      # The plugin channel is the recommended one, so its completion path is a gate, not a
+      # nicety: workflows, ORCHESTRATION.md and the statusLine are what a plugin cannot carry.
+      - name: Install + verify — plugin complement
+        run: |
+          export HOME="$(mktemp -d)"
+          "$GITHUB_WORKSPACE/install.sh" --plugin --settings
+          "$GITHUB_WORKSPACE/verify-install.sh" --plugin
+
+      # Both channels on one machine is the mistake this mode exists to name: two copies of
+      # every hook, fired twice per event. Assert the check says no when that really happened.
+      - name: Plugin complement rejects a doubled surface (negative case)
+        run: |
+          export HOME="$(mktemp -d)"
+          "$GITHUB_WORKSPACE/install.sh" --plugin > /dev/null
+          "$GITHUB_WORKSPACE/install.sh" > /dev/null
+          if "$GITHUB_WORKSPACE/verify-install.sh" --plugin > /tmp/dup.log 2>&1; then
+            echo "::error::verify-install --plugin passed on a doubled surface"
+            cat /tmp/dup.log
+            exit 1
+          fi
+          grep -q 'plugin-owned surface duplicated' /tmp/dup.log
+          echo "doubled surface correctly rejected"
 
       - name: Install is idempotent
         run: |

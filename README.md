@@ -11,7 +11,7 @@
   <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-blue.svg"></a>
   <img alt="Version" src="https://img.shields.io/badge/version-1.0.0-6c4bf6">
   <img alt="Claude Code plugin" src="https://img.shields.io/badge/Claude%20Code-plugin%20%2B%20installer-6c4bf6">
-  <img alt="Hook tests" src="https://img.shields.io/badge/hook%20tests-103%20passing-3fb950">
+  <img alt="Hook tests" src="https://img.shields.io/badge/hook%20tests-111%20passing-3fb950">
   <img alt="shellcheck" src="https://img.shields.io/badge/shellcheck-clean-3fb950">
   <img alt="Skills" src="https://img.shields.io/badge/surface-7%20skills%20%C2%B7%208%20hooks%20%C2%B7%204%20agents-1f6feb">
 </p>
@@ -40,12 +40,12 @@ It runs on itself. Every convention here is enforced on this repository by the g
 | **7 skills** | `root-cause` · `done` · `handoff` · `loop-iteration` · `goal-setup` · `spec-first` · `peripheral-vision` | discipline that triggers on its own |
 | **8 hooks** | `firefight-catch` · `session-anchor` · `push-guard` · `strip-ai-attribution` · `handoff-freshness` · `loop-guard` · `loop-state` · `notify-ntfy` | mechanical rails, not reminders |
 | **4 agents** | `loop-verifier` · `adversarial-reviewer` · `scout` · `consistency-sweep` | independent verification with its own context |
-| **7 commands** | `/goal-brief` · `/handoff` · `/morning` · `/pr-message` · `/product-loop` · `/research-loop` · `/weekly-maintenance` | the rituals, automated |
+| **8 commands** | `/goal-brief` · `/handoff` · `/morning` · `/pr-message` · `/product-loop` · `/research-loop` · `/weekly-maintenance` · `/nightshift-setup` | the rituals, automated |
 | **5 workflows** | `sdd-conductor` · `pattern-coverage` · `pattern-migration` · `second-opinion` · `research-campaign` | deterministic multi-agent orchestration |
 | **The protocol** | [`ORCHESTRATION.md`](ORCHESTRATION.md) | goals → phases → loops → rulings |
 | **The recipes** | [`docs/COOKBOOK.md`](docs/COOKBOOK.md) | eight end-to-end workloads |
 
-Plus an installer with drift detection, a 103-case hook regression suite, a status line, git
+Plus an installer with drift detection, a 111-case hook regression suite, a status line, git
 guards, and systemd units for scheduled runs.
 
 **The single idea:** make the good path the default path, so that using it at 11pm requires no
@@ -62,9 +62,13 @@ Two channels. They install the same surface; pick one, not both.
 ```sh
 /plugin marketplace add MissingPackage/nightshift
 /plugin install nightshift@nightshift
+/nightshift-setup                            # restart the session first, so the command exists
 ```
 
-Hooks are wired by `hooks/hooks.json` — nothing to merge by hand.
+Hooks are wired by `hooks/hooks.json` — nothing to merge by hand. `/nightshift-setup` adds the
+three things a plugin cannot carry: the workflows, `~/.claude/ORCHESTRATION.md` (skills cite it
+by that path), and the status line. It installs nothing the plugin already provides, and
+`verify-install.sh --plugin` fails if a second copy is ever found.
 
 ### B. With the installer
 
@@ -73,7 +77,7 @@ git clone https://github.com/MissingPackage/nightshift
 cd nightshift
 ./install.sh --dry-run     # see exactly what would change; writes nothing
 ./install.sh --settings    # install, and merge hooks + statusLine into settings.json
-./verify-install.sh        # 36 checks
+./verify-install.sh        # 37 checks
 ```
 
 | Flag | Effect |
@@ -82,6 +86,7 @@ cd nightshift
 | `--settings` | also merge the hooks block and statusLine into `settings.json`. Idempotent, backs up first, never clobbers other keys or a custom statusLine. |
 | `--with-vendored` | also install the four vendored third-party skills (see [Third-party](#third-party) below). Off by default. |
 | `--enterprise` | file-based surface only, no hooks, `settings.json` untouched — for environments where managed settings block hooks. See [`docs/ENTERPRISE.md`](docs/ENTERPRISE.md). |
+| `--plugin` | complement channel A instead of duplicating it: workflows, `ORCHESTRATION.md` and the status line only. What `/nightshift-setup` runs for you. |
 | `--dry-run` | print what would change, write nothing. Composes with all of the above. |
 
 Existing files that differ are backed up to `~/.claude/nightshift-backup-<epoch>/` before
@@ -203,7 +208,7 @@ report and the loop watchdog. See [`docs/nightly-loop.md`](docs/nightly-loop.md)
 
 ## Contributing
 
-Run `bash tests/run.sh` before opening a PR — 103 cases, hooks driven by piped JSON fixtures.
+Run `bash tests/run.sh` before opening a PR — 111 cases, hooks driven by piped JSON fixtures.
 CI runs that plus `tests/check-references.sh`, `tests/check-no-secrets.sh`, a sandbox install
 and verify in all four modes, an idempotency check, a negative case proving the drift sensor
 can still fail, and shellcheck. It needs no secrets and requests read-only permissions.
