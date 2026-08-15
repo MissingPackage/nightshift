@@ -811,6 +811,32 @@ HOME="$PC4" bash "$ROOT/install.sh" --settings >/dev/null 2>&1   # merges the ho
 if HOME="$PC4" bash "$ROOT/verify-install.sh" --plugin 2>&1 | grep -q 'hooks registered twice'; then ok
 else bad "double registration not reported"; fi
 
+# The duplication above is reachable by accident — install the plugin, then clone and run the
+# installer the README shows. The default must refuse it, not produce it.
+PCG="$PC/guard"; mkdir -p "$PCG/.claude/plugins/cache/nightshift/nightshift/1.0.0/.claude-plugin"
+printf '{"name":"nightshift"}' > "$PCG/.claude/plugins/cache/nightshift/nightshift/1.0.0/.claude-plugin/plugin.json"
+
+t "install: refuses the full surface when the plugin is already installed"
+GOUT="$(HOME="$PCG" bash "$ROOT/install.sh" 2>&1)"
+if printf '%s' "$GOUT" | grep -q 'PLUGIN is already installed' && [ ! -d "$PCG/.claude/skills" ]; then ok
+else bad "expected a refusal and no files; got: ${GOUT:0:140}"; fi
+
+t "install --plugin: still allowed on a machine that has the plugin"
+if HOME="$PCG" bash "$ROOT/install.sh" --plugin >/dev/null 2>&1 &&
+   [ -f "$PCG/.claude/workflows/sdd-conductor.workflow.js" ] && [ ! -d "$PCG/.claude/skills" ]; then ok
+else bad "the complement was blocked by the duplication guard"; fi
+
+t "install --force: the override installs the full surface anyway"
+if HOME="$PCG" bash "$ROOT/install.sh" --force >/dev/null 2>&1 &&
+   [ -f "$PCG/.claude/skills/root-cause/SKILL.md" ]; then ok
+else bad "--force did not override the guard"; fi
+
+t "verify: a drift check that could not run says so instead of reporting agreement"
+# $PCG now has the plugin AND a --force'd full surface, so a default --dry-run refuses. The
+# sensor must not read that silence as "installed surface == repo".
+if HOME="$PCG" bash "$ROOT/verify-install.sh" 2>&1 | grep -q 'drift check could not run'; then ok
+else bad "the refused dry-run was read as a clean surface"; fi
+
 t "/nightshift-setup: the command ships and names the flag it drives"
 if [ -f "$ROOT/commands/nightshift-setup.md" ] &&
    grep -q -- '--plugin' "$ROOT/commands/nightshift-setup.md" &&

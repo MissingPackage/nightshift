@@ -20,6 +20,9 @@
 #                                no hooks/, settings.json untouched — for environments where
 #                                managed settings block hooks (docs/ENTERPRISE.md). Excludes --settings.
 #   ./install.sh --dry-run       print what would change, write nothing (composes with the above)
+#   ./install.sh --force         install the full surface even though the plugin is present
+#                                (accepting duplicated skills/agents/commands). Without it, the
+#                                installer refuses that combination rather than doubling it.
 #
 # Behavior: existing files that differ are backed up to ~/.claude/nightshift-backup-<epoch>/
 # before overwrite; unchanged files are skipped (re-run ⇒ "0 installed" and no backup dir).
@@ -35,6 +38,7 @@ SETTINGS=0
 ENTERPRISE=0
 VENDORED=0
 PLUGIN=0
+FORCE=0
 for arg in "$@"; do
   case "$arg" in
     --dry-run) DRY=1 ;;
@@ -42,6 +46,7 @@ for arg in "$@"; do
     --enterprise) ENTERPRISE=1 ;;
     --with-vendored) VENDORED=1 ;;
     --plugin) PLUGIN=1 ;;
+    --force) FORCE=1 ;;
     *) printf 'install.sh: unknown flag: %s\n' "$arg" >&2; exit 2 ;;
   esac
 done
@@ -51,6 +56,20 @@ if [ "$ENTERPRISE" -eq 1 ] && [ "$SETTINGS" -eq 1 ]; then
 fi
 if [ "$ENTERPRISE" -eq 1 ] && [ "$PLUGIN" -eq 1 ]; then
   printf 'install.sh: --enterprise excludes --plugin (managed settings that block hooks block a plugin too; install the file surface plainly)\n' >&2
+  exit 2
+fi
+
+# The two channels install the same skills, agents and commands, and Claude Code discovers
+# both — so running this installer plainly on a machine that already has the plugin doubles
+# every entry. Refuse by default and name the two ways out; --force is there for the one who
+# is deliberately replacing the plugin with the installer.
+if [ "$PLUGIN" -eq 0 ] && [ "$FORCE" -eq 0 ] &&
+   [ -n "$(find "${DEST}/plugins/cache/nightshift" -maxdepth 4 -name plugin.json 2>/dev/null | head -1)" ]; then
+  printf 'install.sh: the nightshift PLUGIN is already installed on this machine.\n' >&2
+  printf 'Installing the full surface on top of it duplicates every skill, agent and command.\n' >&2
+  printf '  complement it:  ./install.sh --plugin      (or run /nightshift-setup)\n' >&2
+  printf '  replace it:     /plugin uninstall nightshift@nightshift, then re-run this\n' >&2
+  printf '  override:       ./install.sh --force       (you accept the duplication)\n' >&2
   exit 2
 fi
 

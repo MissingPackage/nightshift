@@ -198,8 +198,16 @@ if [ -x "$SRC_DIR/install.sh" ] || [ -f "$SRC_DIR/install.sh" ]; then
   [ "$PLUGIN" -eq 1 ] && drift_flags="--plugin"
   [ -f "$DEST/skills/brainstorming/SKILL.md" ] && drift_flags="$drift_flags --with-vendored"
   # shellcheck disable=SC2086  # word splitting is the point: 0-2 flags
-  drift="$(bash "$SRC_DIR/install.sh" --dry-run $drift_flags 2>/dev/null | grep '^would install:' | sed 's/^would install: /  /')"
-  if [ -z "$drift" ]; then
+  drift_raw="$(bash "$SRC_DIR/install.sh" --dry-run $drift_flags 2>/dev/null)"
+  drift_rc=$?
+  drift="$(printf '%s\n' "$drift_raw" | grep '^would install:' | sed 's/^would install: /  /')"
+  # A dry-run that refused to run prints nothing, and "nothing" is also what a clean surface
+  # prints: without this branch the sensor would report agreement it never measured.
+  if [ "$drift_rc" -ne 0 ]; then
+    bad "drift check could not run" \
+        "install.sh --dry-run $drift_flags exited $drift_rc — silent, not clean:
+$(printf '%s\n' "$drift_raw" | head -3)"
+  elif [ -z "$drift" ]; then
     ok "installed surface == repo (no fix that exists only here)"
   else
     bad "the repo is ahead of the machine: changes not in effect" \
