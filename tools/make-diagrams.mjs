@@ -31,11 +31,33 @@ const YELLOW = '#ffec99', GREEN = '#b2f2bb', BLUE = '#a5d8ff', RED = '#ffc9c9', 
 // --- text as outlines -------------------------------------------------------
 const textWidth = (s, size) => font.getAdvanceWidth(s, size)
 const missing = new Set()
+// Glyph outlines are 95% of these files when every letter carries its own path, so each
+// character is defined ONCE at 1000 units and re-used at the size it is needed.
+const UNIT = 1000
+const glyphDefs = new Map()
+function glyphId(ch) {
+  if (!glyphDefs.has(ch)) {
+    glyphDefs.set(ch, r1(font.getPath(ch, 0, 0, UNIT).toPathData(1)))
+  }
+  return 'g' + ch.codePointAt(0).toString(16)
+}
 function textPaths(s, cx, cy, size, anchor = 'middle') {
   for (const ch of s) if (ch !== ' ' && font.charToGlyph(ch).index === 0) missing.add(ch)
   const w = textWidth(s, size)
-  const x = anchor === 'middle' ? cx - w / 2 : anchor === 'end' ? cx - w : cx
-  return `<path d="${r1(font.getPath(s, x, cy, size).toPathData(1))}" fill="${INK}"/>`
+  let x = anchor === 'middle' ? cx - w / 2 : anchor === 'end' ? cx - w : cx
+  const k = size / UNIT
+  const out = []
+  const chars = [...s]
+  for (let i = 0; i < chars.length; i++) {
+    const ch = chars[i]
+    if (ch !== ' ') {
+      out.push(`<use href="#${glyphId(ch)}" transform="translate(${r1(String(x))} ${r1(String(cy))}) scale(${k})"/>`)
+    }
+    x += font.getAdvanceWidth(ch, size)
+    const next = chars[i + 1]
+    if (next) x += font.getKerningValue(font.charToGlyph(ch), font.charToGlyph(next)) * k
+  }
+  return out.join('')
 }
 function label(lines, cx, cy, size) {
   const lh = size * 1.22
@@ -45,6 +67,7 @@ function label(lines, cx, cy, size) {
 
 // --- scene ------------------------------------------------------------------
 function scene(width, height, build) {
+  glyphDefs.clear()
   // roughjs needs a DOM node only to append to; we take the generator's output instead.
   const rc = rough.generator({ options: { seed: 42 } })
   const out = []
@@ -75,6 +98,18 @@ function scene(width, height, build) {
         out.push(textPaths(text, mx, my, 14))
       }
     },
+    region(x, y, w, h, title) {
+      draw(rc.rectangle(x, y, w, h, { fill: '#f8f9fa', fillStyle: 'solid', stroke: '#adb5bd', strokeWidth: 1.4, roughness: 1.8 }))
+      if (title) out.push(textPaths(title, x + 200, y + 30, 17, 'start'))
+    },
+    tag(x, y, w, lines, fill = '#ffd8a8') {
+      const h = 24 + (lines.length - 1) * 19
+      draw(rc.rectangle(x, y, w, h, { fill, fillStyle: 'solid', stroke: INK, strokeWidth: 1.2, roughness: 1.2 }))
+      out.push(label(lines, x + w / 2, y + h / 2, 13))
+    },
+    dashed(x1, y1, x2, y2) {
+      draw(rc.line(x1, y1, x2, y2, { stroke: '#868e96', strokeWidth: 1.4, roughness: 1, strokeLineDash: [8, 6] }))
+    },
     line(x1, y1, x2, y2) { draw(rc.line(x1, y1, x2, y2, { stroke: INK, strokeWidth: 1.5, roughness: 1.3 })) },
     title(t, x, y) { out.push(textPaths(t, x, y, 21, 'start')) },
     note(t, x, y, anchor = 'start') { out.push(textPaths(t, x, y, 14, anchor)) },
@@ -84,7 +119,13 @@ function scene(width, height, build) {
   // A NaN coordinate makes every renderer abandon the rest of the path silently — the first
   // version of these diagrams shipped with labels cut in half because nothing checked.
   if (body.includes('NaN')) throw new Error('NaN in path data: the SVG would render truncated')
+  const defs = [...glyphDefs.entries()]
+    .map(([ch, d]) => `<path id="${glyphId(ch)}" d="${d}"/>`)
+    .join('\n')
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" width="${width}" height="${height}">
+<defs fill="${INK}">
+${defs}
+</defs>
 <rect width="${width}" height="${height}" fill="#fdfdfd" rx="6"/>
 ${body}
 </svg>\n`
@@ -247,9 +288,93 @@ writeFileSync('assets/workflow-second-opinion.svg', scene(1040, 440, (d) => {
   d.arrow(860, 310, 876, 248)
 }))
 
+// --- 7. the whole flow ------------------------------------------------------
+writeFileSync('assets/full-flow.svg', scene(1180, 1560, (d) => {
+  d.title('one goal, end to end — and every hook that fires without being asked', 24, 40)
+
+  // rails
+  d.note('HOOKS', 40, 92)
+  d.note('nothing invokes them', 40, 112)
+  d.note('YOUR RULINGS', 946, 92)
+  d.note('the loop waits, it does not guess', 946, 112)
+
+  // --- setting it up
+  d.box(300, 130, 250, 60, ['brainstorming'], GREY, 16)
+  d.note('when the design is open', 300, 210)
+  d.box(590, 130, 270, 60, ['spec-first'], GREY, 16)
+  d.arrow(554, 160, 586, 160)
+
+  d.box(300, 250, 560, 66, ['/goal-brief writes GOAL.md', 'every guess marked [ASSUMED]'], YELLOW, 15)
+  d.arrow(580, 194, 580, 246)
+  d.tag(946, 258, 214, ['you resolve every', '[ASSUMED] marker'], '#b2f2bb')
+
+  d.box(300, 356, 560, 60, ['/goal: goal-setup writes PHASES.md'], YELLOW, 15)
+  d.arrow(580, 320, 580, 352)
+  d.tag(946, 366, 214, ['plan-check: 60 seconds'], '#b2f2bb')
+
+  d.box(300, 456, 560, 60, ['/loop /product-loop  ·  /research-loop'], VIOLET, 15)
+  d.arrow(580, 420, 580, 452)
+
+  // --- the night
+  d.region(268, 556, 624, 700, 'then it runs without you')
+  d.arrow(580, 520, 580, 556)
+
+  d.box(300, 600, 520, 64, ['research phase: research-campaign'], BLUE, 15)
+  d.note('the prediction is registered before the spend', 300, 682)
+  d.box(300, 700, 520, 64, ['build phase: sdd-conductor'], BLUE, 15)
+  d.note('task graph, waves, patch-apply', 300, 782)
+  d.box(300, 800, 520, 82, ['convention phase: pattern-coverage,', 'pattern-migration, coverage again'], BLUE, 14)
+  d.note('measure, fix, measure again', 300, 900)
+  d.box(300, 920, 520, 60, ['loop-verifier grades the done-when'], VIOLET, 15)
+  d.box(300, 1010, 520, 64, ['digest · HANDOFF §1 · schedule the next'], GREEN, 15)
+  d.arrow(560, 668, 560, 696)
+  d.arrow(560, 768, 560, 796)
+  d.arrow(560, 886, 560, 916)
+  d.arrow(560, 984, 560, 1006)
+  d.line(844, 1042, 866, 1042)
+  d.line(866, 1042, 866, 632)
+  d.arrow(866, 632, 824, 632)
+  d.note('next iteration', 300, 1108)
+  d.box(300, 1120, 520, 60, ['stop by design when a ruling is missing'], RED, 15)
+  d.arrow(560, 1078, 560, 1116)
+
+  d.tag(946, 800, 214, ['an authority edge:', 'a docket entry, and it waits'], '#b2f2bb')
+  d.tag(946, 1128, 214, ['the rulings it is waiting for'], '#b2f2bb')
+
+  // --- hooks rail
+  d.tag(40, 560, 210, ['session-anchor', 'SessionStart'])
+  d.dashed(254, 574, 296, 590)
+  d.tag(40, 700, 210, ['strip-ai-attribution · push-guard', 'PreToolUse: Bash'])
+  d.dashed(254, 718, 296, 726)
+  d.tag(40, 920, 210, ['loop-guard · handoff-freshness', 'Stop'])
+  d.dashed(254, 940, 296, 946)
+  d.tag(40, 1010, 210, ['loop-state', 'PostToolUse: ScheduleWakeup'])
+  d.dashed(254, 1030, 296, 1038)
+  d.tag(40, 1120, 210, ['loop-watchdog', 'systemd, outside the session'], '#e9ecef')
+  d.dashed(254, 1140, 296, 1146)
+  d.note('restarts a loop whose session died,', 40, 1186)
+  d.note('never one that is quietly working', 40, 1206)
+
+  // --- after the night
+  d.box(300, 1300, 560, 64, ['second-opinion on the branch, then /pr-message'], BLUE, 15)
+  d.arrow(580, 1256, 580, 1296)
+  d.tag(946, 1310, 214, ['you merge. always.'], '#b2f2bb')
+
+  d.box(300, 1400, 560, 60, ['/morning: the report on your phone'], GREEN, 15)
+  d.arrow(580, 1368, 580, 1396)
+  d.tag(40, 1400, 210, ['notify-ntfy', 'Notification'])
+  d.dashed(254, 1418, 296, 1424)
+
+  // --- the side door
+  d.box(300, 1490, 560, 60, ['any hour: you paste an error, root-cause takes over'], RED, 15)
+  d.tag(40, 1490, 210, ['firefight-catch', 'UserPromptSubmit'])
+  d.dashed(254, 1508, 296, 1514)
+  d.note('the 11pm path is a side door, not a phase — it can interrupt any row above', 300, 1478)
+}))
+
 // the gate the header promises: a character the font lacks vanishes without a trace
 if (missing.size) {
   console.error('characters this font does not carry, they would vanish silently: ' + [...missing].join(' '))
   process.exit(1)
 }
-console.log('6 svg written')
+console.log('7 svg written')
