@@ -1,0 +1,6 @@
+# push-policy — read by push-guard (Claude Code hook) and git-hooks/pre-push.
+# One rule per line: <remote> <branch> [force-ok]. No line = nothing is allowed.
+#
+# Ruling in chat, 2026-08-16: publish the removal of attribution stripping.
+# Plain pushes of master to origin. Force is NOT granted.
+origin master
