@@ -39,7 +39,7 @@ elif [ "$PLUGIN" -eq 1 ]; then
   # The plugin owns hooks/skills/agents/commands. Finding them HERE too is the defect this
   # mode exists to catch: two copies of every hook, fired twice per event.
   dup=""
-  for h in strip-ai-attribution firefight-catch session-anchor push-guard handoff-freshness notify-ntfy loop-state loop-guard; do
+  for h in firefight-catch session-anchor push-guard handoff-freshness notify-ntfy loop-state loop-guard; do
     [ -e "$DEST/hooks/$h.sh" ] && dup="$dup hooks/$h.sh"
   done
   for s in root-cause 'done' handoff loop-iteration peripheral-vision spec-first goal-setup; do
@@ -59,7 +59,7 @@ elif [ "$PLUGIN" -eq 1 ]; then
   → remedy: remove them from ~/.claude, or drop the plugin and use ./install.sh alone"
   fi
 else
-  for h in strip-ai-attribution firefight-catch session-anchor push-guard handoff-freshness notify-ntfy; do
+  for h in firefight-catch session-anchor push-guard handoff-freshness notify-ntfy; do
     f="$DEST/hooks/$h.sh"
     if [ -x "$f" ]; then ok "hook $h.sh present+executable"; else bad "hook $h.sh" "missing or not executable at ${f#"$HOME"/}"; fi
   done
@@ -230,13 +230,6 @@ case "$out" in
   *) bad "firefight-catch functional" "no polling context on 'done?': ${out:0:120}" ;;
 esac
 
-out=$(printf '%s' '{"tool_input":{"command":"git commit -m \"x\n\nCo-Authored-By: Claude <noreply@anthropic.com>\""}}' \
-      | bash "$DEST/hooks/strip-ai-attribution.sh" 2>/dev/null || true)
-case "$out" in
-  *updatedInput*) case "$out" in *Co-Authored-By*Claude*Co-Authored-By*) bad "strip-ai-attribution functional" "attribution survived" ;; *) ok "strip-ai-attribution: strips Co-Authored-By" ;; esac ;;
-  *) bad "strip-ai-attribution functional" "no rewrite emitted: ${out:0:120}" ;;
-esac
-
 mkdir -p "$SB/proj/.harness"
 printf '# deny-all\n' > "$SB/proj/.harness/push-policy"
 out=$(printf '{"tool_input":{"command":"git push origin main"},"cwd":"%s"}' "$SB/proj" \
@@ -263,7 +256,7 @@ elif [ "$PLUGIN" -eq 1 ]; then
     # A hook registered BOTH by the plugin and by settings.json fires twice. The complement
     # never writes them; anything found here came from a plain --settings run on top.
     reg=""
-    for h in strip-ai-attribution firefight-catch session-anchor push-guard handoff-freshness loop-state loop-guard notify-ntfy; do
+    for h in firefight-catch session-anchor push-guard handoff-freshness loop-state loop-guard notify-ntfy; do
       grep -q "$h" "$SETTINGS" 2>/dev/null && reg="$reg $h"
     done
     if [ -z "$reg" ]; then
@@ -283,7 +276,7 @@ elif [ "$PLUGIN" -eq 1 ]; then
 else
 SETTINGS="$DEST/settings.json"
 if [ -f "$SETTINGS" ]; then
-  for h in strip-ai-attribution firefight-catch session-anchor push-guard handoff-freshness loop-state loop-guard; do
+  for h in firefight-catch session-anchor push-guard handoff-freshness loop-state loop-guard; do
     if grep -q "$h" "$SETTINGS" 2>/dev/null; then
       ok "settings.json references $h"
     else

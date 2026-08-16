@@ -94,7 +94,7 @@ git clone https://github.com/MissingPackage/nightshift
 cd nightshift
 ./install.sh --dry-run     # see exactly what would change; writes nothing
 ./install.sh --settings    # install, and merge hooks + statusLine into settings.json
-./verify-install.sh        # 37 checks
+./verify-install.sh        # 45 checks
 ```
 
 | Flag | Effect |
@@ -121,13 +121,12 @@ right is your call, not the installer's.
 
 ### Verify it took (2 minutes)
 
-`./verify-install.sh` checks the files. These four check the behaviour:
+`./verify-install.sh` checks the files. These three check the behaviour:
 
 1. Start a session and type `done?` → a `[firefight-catch]` note appears telling the agent to
    answer with a report, not a bare yes.
-2. Commit with a `Co-Authored-By:` trailer → it is stripped.
-3. `git push` to a remote your `.harness/push-policy` does not allow → denied.
-4. Create a `HANDOFF.md` with a `## 1. Next decidable` section → a new session echoes it back.
+2. `git push` to a remote your `.harness/push-policy` does not allow → denied.
+3. Create a `HANDOFF.md` with a `## 1. Next decidable` section → a new session echoes it back.
 
 If any of these does nothing, the hooks are not registered: re-run with `--settings`, or check
 that `settings.json` is valid JSON.
@@ -278,7 +277,7 @@ What lands in `~/.claude`, by kind:
 
 - **7 skills** — `root-cause` · `done` · `handoff` · `loop-iteration` · `goal-setup` ·
   `spec-first` · `peripheral-vision`. They trigger on their own; none of them needs invoking.
-- **8 hooks** — `firefight-catch` · `session-anchor` · `push-guard` · `strip-ai-attribution` ·
+- **7 hooks** — `firefight-catch` · `session-anchor` · `push-guard` ·
   `handoff-freshness` · `loop-guard` · `loop-state` · `notify-ntfy`.
 - **4 agents** — `loop-verifier` · `adversarial-reviewer` · `scout` · `consistency-sweep`. Each
   gets its own context, which is the point: a reviewer sharing the author's context reviews its

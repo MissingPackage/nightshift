@@ -60,7 +60,7 @@ absorb.
 
 ## Git and safety
 
-- ⟨FILL: your attribution policy — e.g. no AI attribution in commits, PRs, or merges⟩
+- ⟨FILL: your commit and PR conventions — message style, trailers, sign-off, attribution⟩
 - Before deleting or reverting committed code, check `git log --follow` recency and ask if
   it's recent or outside your brief. "Unused" ≠ dead.
 - Push only to the remotes and branches this project's policy allows (`.harness/push-policy`).

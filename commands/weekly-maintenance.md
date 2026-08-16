@@ -20,9 +20,9 @@ instructions are English. Plain language, titles not IDs. Order:
    incident — tighten the verifier the same day, and at the top of the next coffee
    report.
 3. **Hook health** (10s each). `bash tests/run.sh` in the harness repo; plus the live
-   type-tests: "fatto?" fixture → firefight-catch responds; Co-Authored-By fixture →
-   strip-ai-attribution cleans; push fixture → push-guard decides per policy;
-   session-anchor on the repo → emits HANDOFF §1. A silent hook = incident.
+   type-tests: "fatto?" fixture → firefight-catch responds; push fixture → push-guard
+   decides per policy; session-anchor on the repo → emits HANDOFF §1. A silent hook
+   = incident.
 4. **Memory and surface hygiene.** HANDOFF over 80 lines per touched project;
    goals with all phases done but not archived; auto-memory MEMORY.md with dead
    entries; **GLOSSARY.md**: entries whose referent no longer exists (grep the term in

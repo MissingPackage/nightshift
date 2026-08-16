@@ -1,11 +1,10 @@
 {
-  "description": "Nightshift — mechanical rails: attribution stripping, push policy, firefight catch, session anchoring, loop state, hand-off freshness, loop continuation, notifications.",
+  "description": "Nightshift — mechanical rails: push policy, firefight catch, session anchoring, loop state, hand-off freshness, loop continuation, notifications.",
   "hooks": {
     "PreToolUse": [
       {
         "matcher": "Bash",
         "hooks": [
-          { "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/hooks/strip-ai-attribution.sh" },
           { "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/hooks/push-guard.sh" }
         ]
       }

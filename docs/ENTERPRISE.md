@@ -12,7 +12,7 @@ Managed settings (IT deploy: server-managed, MDM, or `managed-settings.json` in
 `/etc/claude-code/` on Linux) take absolute precedence: "Managed (highest): cannot be
 overridden by anything". Two distinct keys:
 
-- **`disableAllHooks`** — "Disable all hooks and custom status line". The six hooks
+- **`disableAllHooks`** — "Disable all hooks and custom status line". The five hooks
   fall AND the nightshift-hud statusline with them.
 - **`allowManagedHooksOnly`** — "Only managed hooks, SDK hooks, and hooks from
   force-enabled plugins are loaded; user, project, and other plugin hooks are
@@ -34,9 +34,8 @@ model follows but nothing enforces), **lost**.
 |---|---|---|---|
 | session-anchor (SessionStart) | injects HANDOFF §1 + active goals + open dockets at session start (kills the "facciamo il punto" ritual, FM6) | the instruction is already in the project CLAUDE.md ("Read HANDOFF.md §1 before exploring"); in enterprise it becomes the ONLY anchoring line — keep it at the top | compliance (high: current models re-anchor well from the filesystem; it is the pattern Anthropic's own docs recommend for long-horizon work) |
 | firefight-catch (UserPromptSubmit) | intercepts the "11pm voice": FM1 polling, FM2 paste without framing, FM3 firefighting verbs without a cause, FM5 double send <3min | done and root-cause carry the triggers in their descriptions ("fatto?", "non funziona", traceback pastes) ⇒ native skill auto-selection covers FM1/FM2/FM3 | compliance for FM1/2/3; **FM5 lost** (requires cross-prompt state that only a hook has) |
-| strip-ai-attribution (PreToolUse:Bash) | rewrites `git commit` stripping AI attribution | rule already primary in the global CLAUDE.md ("don't rely on the hook") + MECHANICAL recovery possible via a git `commit-msg` hook (§4) | compliance today; mechanical if §4 is adopted |
 | push-guard (PreToolUse:Bash) | denies pushes outside `.harness/push-policy` | CLAUDE.md rule + MECHANICAL recovery via a git `pre-push` hook reading the SAME policy (§4) — and it would also cover human pushes | compliance today; mechanical (better than the original) with §4 |
-| handoff-freshness (Stop) | at session end warns if HANDOFF.md is older than the repo (file delta) | no Stop event available; /handoff discipline (already in the contract: "End every session that changed state by refreshing HANDOFF.md") + the check is a command the model can run itself at session start | compliance (the most fragile of the six: the it5+it9 incident that produced R12 happened WITH the written rule and WITHOUT the hook) |
+| handoff-freshness (Stop) | at session end warns if HANDOFF.md is older than the repo (file delta) | no Stop event available; /handoff discipline (already in the contract: "End every session that changed state by refreshing HANDOFF.md") + the check is a command the model can run itself at session start | compliance (the most fragile of them: the it5+it9 incident that produced R12 happened WITH the written rule and WITHOUT the hook) |
 | notify-ntfy (Notification) | phone push via ntfy | native OS terminal notifications (they don't go through hooks); the outbound curl to ntfy would be a candidate for the corporate deny anyway | lost (partial substitute: native desktop notifications) |
 | — nightshift-hud statusline | cosmetic HUD (zero context cost) | none with `disableAllHooks`; maybe survives with `allowManagedHooksOnly` (§1) | lost or intact depending on the key — cosmetic, not harness |
 
@@ -61,9 +60,7 @@ the method.
 ## 4. Mechanical recovery via git hooks (BUILT — ruling E1, 2026-07-25)
 
 Git hooks live in the repo (`.git/hooks/` or `core.hooksPath`), not in Claude Code:
-managed settings don't see them, and they also apply to commits/pushes made by hand.
-- `git-hooks/commit-msg`: strips attribution lines (same regex class as
-  strip-ai-attribution, adapted to the message file).
+managed settings don't see them, and they also apply to pushes made by hand.
 - `git-hooks/pre-push`: judges every ref from stdin against `.harness/push-policy`
   (same semantics as push-guard); non-fast-forward and delete count as force
   (they require `force-ok`).

@@ -53,19 +53,6 @@ assert_contains() {
 assert_not_contains() {
   case "$OUT" in *"$1"*) bad "unexpected '$1' in: ${OUT:0:180}" ;; *) ok ;; esac
 }
-# assert JSON: permissionDecision==allow, updatedInput.command has no attribution, keeps $1
-assert_stripped_keeps() {
-  printf '%s' "$OUT" | python3 -c '
-import json, sys
-o = json.load(sys.stdin)
-h = o["hookSpecificOutput"]
-c = h["updatedInput"]["command"]
-assert h["permissionDecision"] == "allow", "not allow"
-for marker in ("Co-Authored-By", "Generated with", "Claude-Session"):
-    assert marker not in c, marker + " survived"
-assert sys.argv[1] in c, "lost original message"
-' "$1" 2>/dev/null && ok || bad "strip contract violated: ${OUT:0:180}"
-}
 assert_deny() {
   printf '%s' "$OUT" | python3 -c '
 import json, sys
@@ -75,52 +62,6 @@ assert h["permissionDecision"] == "deny"
 assert "push-guard" in h["permissionDecisionReason"]
 ' 2>/dev/null && ok || bad "expected deny JSON, got rc=$RC: ${OUT:0:180}"
 }
-
-echo "== strip-ai-attribution.sh =="
-
-t "strip: Co-Authored-By Claude removed, message kept"
-run_hook strip-ai-attribution.sh "$(json_cmd 'git commit -m "fix: order totals
-
-Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>"')"
-assert_stripped_keeps "fix: order totals"
-
-t "strip: 'Generated with Claude Code' removed"
-run_hook strip-ai-attribution.sh "$(json_cmd 'git commit -m "feat: retry queue
-
-🤖 Generated with [Claude Code](https://claude.com/claude-code)"')"
-assert_stripped_keeps "feat: retry queue"
-
-t "strip: Claude-Session trailer removed"
-run_hook strip-ai-attribution.sh "$(json_cmd 'git commit -m "chore: bump deps
-
-Claude-Session: https://claude.ai/code/session_ABC"')"
-assert_stripped_keeps "chore: bump deps"
-
-t "strip: escaped \\n attribution form removed"
-run_hook strip-ai-attribution.sh "$(json_cmd 'git commit -m "fix: x\n\nCo-Authored-By: Claude <noreply@anthropic.com>"')"
-assert_stripped_keeps "fix: x"
-
-t "strip: clean commit passes silently"
-run_hook strip-ai-attribution.sh "$(json_cmd 'git commit -m "fix: plain human commit"')"
-assert_silent
-
-t "strip: human co-author untouched"
-run_hook strip-ai-attribution.sh "$(json_cmd 'git commit -m "pair work
-
-Co-Authored-By: Example Reviewer <reviewer@example.com>"')"
-assert_silent
-
-t "strip: non-commit git command ignored"
-run_hook strip-ai-attribution.sh "$(json_cmd 'git push origin master')"
-assert_silent
-
-t "strip: non-git command ignored"
-run_hook strip-ai-attribution.sh "$(json_cmd 'echo "Co-Authored-By: Claude"')"
-assert_silent
-
-t "strip: invalid JSON input is a silent no-op"
-run_hook strip-ai-attribution.sh 'this is not json'
-assert_silent
 
 echo "== firefight-catch.sh =="
 
@@ -497,21 +438,9 @@ t "docket: rule on an id ambiguous across goals fails"
 printf '\n## D1 · namesake in g2\n**RULING:** _\n' >> "$DK/.harness/goals/g2/docket.md"
 if CLAUDE_PROJECT_DIR="$DK" bash "$ROOT/tools/docket.sh" rule D1 "which one?" >/dev/null 2>&1; then bad "exit 0 on an ambiguous id"; else ok; fi
 
-echo "== git-hooks (E1): commit-msg + pre-push =="
+echo "== git-hooks (E1): pre-push =="
 
 GH="$SANDBOX/git-guards"; mkdir -p "$GH"
-MSG="$GH/msg.txt"
-
-t "git commit-msg: strips Co-Authored-By, keeps message"
-printf 'fix: order totals\n\nCo-Authored-By: Claude Fable 5 <noreply@anthropic.com>\n' > "$MSG"
-bash "$ROOT/git-hooks/commit-msg" "$MSG" 2>/dev/null
-if grep -q 'fix: order totals' "$MSG" && ! grep -q 'Co-Authored-By' "$MSG"; then ok; else bad "attribution survived or message lost: $(cat "$MSG")"; fi
-
-t "git commit-msg: clean message untouched"
-printf 'feat: nothing special\n' > "$MSG"
-GM_BEFORE="$(cat "$MSG")"
-bash "$ROOT/git-hooks/commit-msg" "$MSG" 2>/dev/null
-[ "$GM_BEFORE" = "$(cat "$MSG")" ] && ok || bad "clean message modified"
 
 GR="$GH/repo"; mkdir -p "$GR"; git -C "$GR" init -q 2>/dev/null
 SHA_A="aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"

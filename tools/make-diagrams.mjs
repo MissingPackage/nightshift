@@ -344,7 +344,7 @@ writeFileSync('assets/full-flow.svg', scene(1180, 1560, (d) => {
   // --- hooks rail
   d.tag(40, 560, 210, ['session-anchor', 'SessionStart'])
   d.dashed(254, 574, 296, 590)
-  d.tag(40, 700, 210, ['strip-ai-attribution · push-guard', 'PreToolUse: Bash'])
+  d.tag(40, 700, 210, ['push-guard', 'PreToolUse: Bash'])
   d.dashed(254, 718, 296, 726)
   d.tag(40, 920, 210, ['loop-guard · handoff-freshness', 'Stop'])
   d.dashed(254, 940, 296, 946)

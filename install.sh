@@ -198,7 +198,7 @@ DEST = os.environ["DEST"]; DRY = os.environ.get("DRY") == "1"
 PLUGIN = os.environ.get("PLUGIN") == "1"
 sp = os.path.join(DEST, "settings.json")
 HOOKS = {
-    "PreToolUse": [("Bash", ["strip-ai-attribution.sh", "push-guard.sh"])],
+    "PreToolUse": [("Bash", ["push-guard.sh"])],
     "UserPromptSubmit": [(None, ["firefight-catch.sh"])],
     "SessionStart": [(None, ["session-anchor.sh"])],
     "PostToolUse": [("ScheduleWakeup", ["loop-state.sh"])],
@@ -281,7 +281,7 @@ elif [ "$ENTERPRISE" -eq 1 ]; then
   say "enterprise mode: hooks NOT installed, settings.json untouched. What you lose (full matrix: docs/ENTERPRISE.md §2):"
   say "  - session-anchor (HANDOFF §1 injection)      -> project CLAUDE.md instruction only (compliance)"
   say "  - firefight-catch (FM1/2/3 steering)         -> done/root-cause skill triggers; FM5 resend-catch LOST"
-  say "  - strip-ai-attribution + push-guard (L4)     -> CLAUDE.md rules; mechanical recovery: tools/install-git-guards.sh per-repo (§4)"
+  say "  - push-guard (L4 push policy)                -> CLAUDE.md rules; mechanical recovery: tools/install-git-guards.sh per-repo (§4)"
   say "  - handoff-freshness (stale-handoff warn)     -> /handoff discipline"
   say "  - loop-state + loop-guard (loop reliability) -> C10; timer esterni: tools/install-schedules.sh"
   say "  - notify-ntfy (phone push)                   -> native OS notifications"
