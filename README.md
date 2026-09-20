@@ -9,18 +9,19 @@
 <p align="center">
   <a href="https://github.com/MissingPackage/nightshift/actions/workflows/gates.yml"><img alt="gates" src="https://github.com/MissingPackage/nightshift/actions/workflows/gates.yml/badge.svg"></a>
   <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-blue.svg"></a>
-  <img alt="Version" src="https://img.shields.io/badge/version-1.0.0-6c4bf6">
+  <img alt="Version" src="https://img.shields.io/badge/version-2.0.0-6c4bf6">
   <img alt="Claude Code plugin" src="https://img.shields.io/badge/Claude%20Code-plugin%20%2B%20installer-6c4bf6">
-  <img alt="Hook tests" src="https://img.shields.io/badge/hook%20tests-116%20passing-3fb950">
+  <img alt="Hook tests" src="https://img.shields.io/badge/hook%20tests-114%20passing-3fb950">
   <img alt="shellcheck" src="https://img.shields.io/badge/shellcheck-clean-3fb950">
-  <img alt="Machine" src="https://img.shields.io/badge/goals%20%C2%B7%20loops%20%C2%B7%20verified%20iterations-1f6feb">
+  <img alt="Machine" src="https://img.shields.io/badge/objective%20%C2%B7%20distance%20%C2%B7%20kill%20tests-1f6feb">
 </p>
 
 ---
 
-**A harness for long-horizon Claude Code work.** Goals decomposed into loop-runnable phases,
-hooks that catch the sessions where discipline usually goes first, iterations verified by an
-independent agent, and decisions that stay yours.
+**A harness for long-horizon Claude Code work.** One map per project with the objective and the
+distance to it, a loop that kills ideas with cheap tests instead of certifying them, hooks that
+catch the sessions where discipline usually goes first, and four kinds of decision that stay
+yours.
 
 Claude Code is very good for an hour. The problems start at hour nine, on day three, at 11pm
 when something is broken and you have no patience left: context is lost, claims stop carrying
@@ -31,22 +32,31 @@ the conversation**, so the next session re-anchors from disk and continues.
 It runs on itself. Every convention here is enforced on this repository by the gates in
 `tests/`.
 
+**Version 2 changed the spine, on evidence.** Version 1.0 ran on a goal contract decomposed into
+phases, a verifier grading every phase and a docket for every decision. Measured on one project
+over six weeks, that produced four registry edits per code edit, half of all final messages
+handing a decision back to the user, and 445k words of record: conformance, not distance
+covered. Version 2 keeps the hooks, the agents and the workflows, and replaces the spine with
+one map and the distance to the objective. The reasoning is at the top of
+[`ORCHESTRATION.md`](ORCHESTRATION.md); the old spine is tag `v1.0.0`.
+
 ---
 
 ## What you get
 
 | | | |
 |---|---|---|
-| **Work that outlives the session** | goals decomposed into phases, state in `.harness/goals/<slug>/` | a crash costs one iteration, not the thread |
-| **Iterations graded by someone else** | `loop-verifier`, own context, read-only | a phase closes on its mechanical done-when, not on the agent's word for it |
-| **A loop that runs unattended** | re-anchor → work the phase → verify → schedule the next | it keeps itself alive across sessions, and stops itself three ways |
+| **Work that outlives the session** | one map per project, `HANDOFF.md`: objective, current value, gap, levers, fog | a crash costs one iteration, not the thread |
+| **Ideas killed cheaply** | every lever gets the cheapest test that can kill it; the dead are recorded with the number | the night is spent on what survived, and nobody re-proposes what died |
+| **A loop that runs unattended** | re-anchor → biggest gap → kill tests → redraw the map → schedule the next | it keeps itself alive across sessions, and stops when the gap will not move |
+| **Rigor where an error costs something** | `done` report, full suite, `adversarial-reviewer`, `loop-verifier` | at the boundary (PR, release, paper, deploy), never per iteration |
 | **Deterministic multi-agent orchestration** | 5 workflows, drawn one by one in [`docs/WORKFLOWS.md`](docs/WORKFLOWS.md) | scripts with real control flow, not a prompt asking for parallelism |
-| **Rails you never invoke** | 8 hooks, fired by events | discipline that survives the hour when you have none |
+| **Rails you never invoke** | 7 hooks, fired by events | discipline that survives the hour when you have none |
 | **The surface** | 7 skills · 4 agents · 8 commands — named under [Surface](#surface) | small on purpose: descriptions compete for the model's attention |
 
-The protocol is [`ORCHESTRATION.md`](ORCHESTRATION.md) — goals → phases → loops → rulings — and
+The protocol is [`ORCHESTRATION.md`](ORCHESTRATION.md) — the map, the loop, the boundary — and
 [`docs/COOKBOOK.md`](docs/COOKBOOK.md) has ten end-to-end workloads. Plus an installer with
-drift detection, a 116-case hook regression suite, a status line, git guards, and systemd units
+drift detection, a 114-case hook regression suite, a status line, git guards, and systemd units
 for scheduled runs.
 
 **The single idea:** make the good path the default path, so that using it at 11pm requires no
@@ -56,14 +66,18 @@ willpower.
 
 ## Why this is not a skill collection
 
-Three things a set of prompts cannot do, all of them mechanical:
+Four things a set of prompts cannot do, all of them mechanical:
 
-- **A phase does not close because the agent says it did.** `loop-verifier` runs in a separate
-  context, reads the phase's done-when, and returns PASS or FAIL with the command it ran. The
-  loop cannot mark its own homework, which is the failure that makes long runs worthless.
-- **The loop knows when to stop.** All phases done, an authority edge it must not cross on its
-  own, or no progress twice on the same phase — it stops and tells you, instead of spending the
-  night on a phase that is not moving.
+- **The loop is steered by a number it cannot talk its way around.** The head line of the map is
+  the objective in the project's own currency, the current value and the gap. A head line that
+  has not moved in two sessions is the first thing discussed, before any other work.
+- **The loop knows when to stop.** Two iterations without the gap moving and it changes lever;
+  four and it stops and asks, because the objective or the ceiling may be wrong. A Stop hook
+  refuses a close without a scheduled wake-up, and an external watchdog restarts a session that
+  died, so it neither grinds until morning nor goes quiet.
+- **Nothing ships on the agent's word.** At the boundary `loop-verifier` and
+  `adversarial-reviewer` run in their own context, read-only, and return a verdict with the
+  command they ran. A reviewer sharing the author's context reviews its own reasoning.
 - **A fix that exists in the repo but is not installed does not exist.** `verify-install.sh`
   compares the installed surface against the source and fails when they diverge — a real
   two-day divergence is why that check is there, and CI proves it can still say no.
@@ -94,7 +108,7 @@ git clone https://github.com/MissingPackage/nightshift
 cd nightshift
 ./install.sh --dry-run     # see exactly what would change; writes nothing
 ./install.sh --settings    # install, and merge hooks + statusLine into settings.json
-./verify-install.sh        # 45 checks
+./verify-install.sh        # 41 checks
 ```
 
 | Flag | Effect |
@@ -126,7 +140,7 @@ right is your call, not the installer's.
 1. Start a session and type `done?` → a `[firefight-catch]` note appears telling the agent to
    answer with a report, not a bare yes.
 2. `git push` to a remote your `.harness/push-policy` does not allow → denied.
-3. Create a `HANDOFF.md` with a `## 1. Next decidable` section → a new session echoes it back.
+3. Create a `HANDOFF.md` with a `## 1. Objective and distance` section → a new session echoes it back.
 
 If any of these does nothing, the hooks are not registered: re-run with `--settings`, or check
 that `settings.json` is valid JSON.
@@ -135,47 +149,53 @@ that `settings.json` is valid JSON.
 
 ## Using it
 
-This is the widest path through the harness — one goal from an idea to a merged branch, with
-every hook that fires on its own and every point where it stops and waits for you. Nothing below
-is a feature list: it is what a single goal actually does.
+This is the widest path through the harness — one objective from an idea to a merged branch,
+with every hook that fires on its own and every point where it stops and waits for you. Nothing
+below is a feature list: it is what a single objective actually does.
 
-<p align="center"><img src="assets/full-flow.svg" alt="One goal end to end: brainstorming and spec-first, goal-brief writing GOAL.md with ASSUMED markers, goal-setup writing PHASES.md, then the loop running unattended through research, build and convention phases with research-campaign, sdd-conductor, pattern-coverage and pattern-migration, each iteration graded by loop-verifier and ending in a digest, then second-opinion and pr-message before you merge, with the hooks that fire at each stage on the left and your rulings on the right" width="820"></p>
+<p align="center"><img src="assets/full-flow.svg" alt="One objective end to end: brainstorming and spec-first, goal-brief drafting the head of the map with ASSUMED markers, HANDOFF.md holding objective, value, gap, levers and fog, then the loop running unattended: re-anchor from the map, take the biggest gap, the cheapest test that can kill each lever, winners built by hand or by a workflow, dead levers marked with the number, the map redrawn and the next iteration scheduled; then the boundary with the done report, second-opinion and pr-message before you merge, and the morning report; the hooks that fire at each stage on the left and the four kinds of decision that reach you on the right" width="820"></p>
 
-### Long-horizon work — goals and loops
+### Long-horizon work — the map and the loop
 
 ```sh
-/goal-brief add offline mode to the sync engine   # → a GOAL.md draft with [ASSUMED] markers
+/goal-brief add offline mode to the sync engine   # → the head of the map, with [ASSUMED] markers
                                                   # you edit it; resolving them IS the exercise
-/goal                                             # iteration 0: goal-setup writes PHASES.md
-                                                  # you approve plan-check — a 60-second read
 /loop /product-loop                               # it runs, and keeps itself alive
 ```
 
-Each iteration: re-anchor from disk → work the first READY phase → `loop-verifier` grades the
-phase's mechanical done-when → update PHASES.md, write a digest, refresh `HANDOFF.md` §1 →
-schedule the next. State lives in `.harness/goals/<slug>/`, so a crash costs one iteration,
-not the thread.
+There is no approval step between the two. The map is `HANDOFF.md` at the project root: a head
+line (the objective in the project's currency, the current value, the gap) and five sections —
+levers (open, in progress, dead with the number), fog, decisions for you, landmines. The currency
+depends on the project: an engine has a number against a physical ceiling, a product has a user
+path that works end to end, research has a question and the contribution so far.
 
-<p align="center"><img src="assets/loop-iteration.svg" alt="One iteration: re-anchor from disk, work the first READY phase, loop-verifier grades the mechanical done-when, then either fix/docket on FAIL or update PHASES and schedule the next iteration" width="900"></p>
+Each iteration: re-anchor from the map → take the biggest gap → list the levers (from the map,
+from the agent's own head, from outside: papers, repos, docs, one pass before writing code) →
+give each one the cheapest test that can kill it, minutes not hours → keep the winners, mark the
+dead with the number → redraw the map, append three lines to `.harness/tried.md` → schedule the
+next. State lives in those two files, so a crash costs one iteration, not the thread.
 
-**Two loops, different contracts.** `/loop /product-loop` is for shipping: one slice per
-iteration, small enough to implement *and* verify in the same iteration, work on a branch,
-merges are a docket item rather than something it decides alone, and `consistency-sweep` blocks
-a slice that applied a new pattern to only some of its sites. `/loop /research-loop` is for
-finding out: the prediction is pre-registered **before** any spend, cost is estimated on a dry
-run first, results are graded against what was predicted — negative results recorded with the
-same care as positive ones — and two dry iterations hand the work back rather than trying a
-third time.
+<p align="center"><img src="assets/loop-iteration.svg" alt="One iteration: re-anchor from the map, take the biggest gap and list the levers, give each lever the cheapest test that can kill it; a killed lever is marked dead with the number and the next one is taken, a surviving one leads to the map redrawn with tried.md and a digest, then either the next wake-up is scheduled while the gap is still open, or the loop stops and asks when the gap is stuck" width="900"></p>
 
-The loop stops itself in three ways, all deliberate: **all phases done** (final verification
-against the goal contract, then a report), **an authority edge** (docket entry, phase blocked,
-next phase taken), **no progress twice on the same phase** (blocked, then paused with a
-notification). It does not grind until morning, and it does not invent scope to stay alive:
-when everything left needs a ruling, stopping *is* the correct ending, and the digest names the
-rulings that are missing.
+**Two loops, different currencies.** `/loop /product-loop` is for shipping: the objective is a
+user path that works end to end, one slice per iteration, work on a branch, merging to a shared
+branch waits for you, and `consistency-sweep` catches a slice that applied a new pattern to only
+some of its sites. `/loop /research-loop` is for finding out: the prediction is registered
+**before** any spend, cost is estimated on a dry run first, results are graded against what was
+predicted — negative results recorded with the same care as positive ones.
 
-Read [`ORCHESTRATION.md`](ORCHESTRATION.md) for the state machine, the escalation ladder and
-the unattended test — what the loop is allowed to decide alone, and what it must hand back.
+**Four kinds of decision reach you, and nothing else does:** irreversible actions, spend (money,
+or more than about thirty minutes of machine), anything that goes public, a change to the
+objective. They arrive in chat, at most three, each one line with the default that applies on a
+bare "ok". Everything else the loop decides, executes and writes in the map.
+
+The loop stops itself on purpose: **two iterations without the gap moving** and it changes
+lever, **four** and it stops and asks whether the objective or the ceiling is wrong; **only
+decisions left** and stopping *is* the correct ending, with the decisions named. It does not
+grind until morning, and it does not invent scope to stay alive.
+
+Read [`ORCHESTRATION.md`](ORCHESTRATION.md) for the spine, the iteration, the four kinds of
+decision, the boundary and what is never automated.
 
 Then read [`docs/COOKBOOK.md`](docs/COOKBOOK.md) for the ten recipes: nightly loop, research
 campaign, greenfield build, firefight, pattern migration, deploy, second-opinion review, weekly
@@ -200,16 +220,17 @@ counted.
 The deepest is `sdd-conductor`: a spec becomes a task graph validated **in code** — disjoint file
 ownership, acyclic dependencies, mechanically checkable done-when — then waves of implement and
 adversarial review, patches applied only by the integrator, and a task that fails review blocked
-and docketed without stopping the build.
+and handed back to the caller without stopping the build. It is for a multi-file build with a
+written spec; a single file or a lever test is done by hand.
 
 **[`docs/WORKFLOWS.md`](docs/WORKFLOWS.md) has all five, each with its own diagram.**
 
 ### Feature work — one session
 
-`brainstorming` if the design is open → `spec-first` → implement → the `done` skill produces a
-report you can audit: commands actually run with their real outcomes, what was **not** verified
-and why, and what you should check by hand. A "done" without evidence is the failure mode this
-exists to make impossible.
+`brainstorming` if the design is open → `spec-first` → implement → at the boundary the `done`
+skill produces a report you can audit: commands actually run with their real outcomes, what was
+**not** verified and why, and what you should check by hand. A "done" without evidence is the
+failure mode this exists to make impossible.
 
 ### Interrupt work — the 11pm path
 
@@ -255,15 +276,19 @@ report and the loop watchdog. See [`docs/nightly-loop.md`](docs/nightly-loop.md)
 
 ## Honest limits
 
+- **The version 2 spine is young.** It replaced the first one on 2026-09-08, on the six-week
+  measurement quoted above. What is measured is the cost of the old spine. That the map moves
+  objectives faster is the author's experience over the unattended nights run on it since, not
+  yet a published number.
 - **No evals in this release.** The harness has a measurement design — two arms, installed
   versus vanilla, driven headless against synthetic fixtures with planted bugs, scored
   deterministically, reporting the *breaking point* of each discipline rather than an average.
   It exists and it works, but its fixtures are not in English, and translating fixtures changes
   the treatment rather than the presentation: scores measured on renamed identifiers are not
-  comparable to the originals. Rebuilding it properly is the v1.1 milestone. Shipping a
+  comparable to the originals. Rebuilding it properly is still owed. Shipping a
   mistranslated measuring instrument would be worse than shipping none.
 - **The hooks are tested; the skills are less so.** `tests/run.sh` drives every hook with real
-  JSON fixtures (116 cases). Skills are prompt-shaped artifacts and are verified by use, not by
+  JSON fixtures (114 cases). Skills are prompt-shaped artifacts and are verified by use, not by
   assertion.
 - **`--enterprise` is a reduced product, not the same product.** Where managed settings block
   hooks, you keep the file-based surface and lose the mechanical enforcement. What survives and
@@ -292,7 +317,7 @@ twenty skills means none of them fire reliably.
 
 ## Contributing
 
-Run `bash tests/run.sh` before opening a PR — 116 cases, hooks driven by piped JSON fixtures.
+Run `bash tests/run.sh` before opening a PR — 114 cases, hooks driven by piped JSON fixtures.
 CI runs that plus `tests/check-references.sh`, `tests/check-no-secrets.sh`, a sandbox install
 and verify in all four modes, an idempotency check, a negative case proving the drift sensor
 can still fail, and shellcheck. It needs no secrets and requests read-only permissions.

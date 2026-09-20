@@ -8,7 +8,8 @@
 // Install: cp into <project>/.claude/workflows/ · Invoke: Workflow({name: "research-campaign",
 //   args: {wp: "<work package: question + context>", anchors: ["research/AGENDA.md", ...],
 //          budgetNote?: "<spend/time constraints for the execution>"}})
-// Pilot on a real WP: gated on docket B3 (roadmap-build).
+// The memo comes back in the return value: the caller records it in the map (a decision of the
+// four kinds goes to HANDOFF section 4, anything else is a line in .harness/tried.md).
 export const meta = {
   name: 'research-campaign',
   description: 'Prediction-gated research WP: pre-register → execute → independent grade → memo',

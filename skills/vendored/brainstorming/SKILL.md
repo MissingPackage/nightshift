@@ -25,9 +25,9 @@ human partner what you intend and they have approved it. This applies
 to EVERY task on EVERY path below — the ceremony scales with the task;
 the approval gate never does.
 
-Exception: work that executes an already-approved spec, an already-approved
-PHASES row, or an explicit docket ruling is past this gate. The design was
-agreed; re-opening it is not diligence, it is a stall.
+Exception: work that executes an already-approved spec, a lever the map
+already names, or a decision the user already made is past this gate. The
+design was agreed; re-opening it is not diligence, it is a stall.
 </HARD-GATE>
 
 ## Three Paths
@@ -165,27 +165,28 @@ Spike: the terminal state is a reported recommendation.
 
 <!-- nightshift drift 2/3 — the architectural exit forks by scale. Upstream hardwires
      writing-plans as the only exit, which presupposes that a plan is the terminal artifact.
-     Under this harness a project-sized effort terminates in a goal contract instead: PHASES.md
-     is where a roadmap gets BUILT, not presupposed. -->
+     Under this harness a project-sized effort terminates in a map instead: HANDOFF.md is
+     where the objective, the distance and the levers get written. -->
 
 **Which plan-shaped skill — fork by scale:**
 
 - **Feature-sized** (one branch, a handful of tasks, one sitting): `writing-plans`.
   The plan is the terminal artifact and execution follows it directly.
-- **Project-sized** (multiple phases, more than one session, needs verification
-  between steps): `spec-first` for the spec shape, then `/goal-brief` to turn it into
-  a goal contract. `goal-setup` decomposes it into loop-runnable phases.
+- **Project-sized** (more than one session, needs verification between steps):
+  `spec-first` for the spec shape, then `/goal-brief` to turn it into the head of a
+  map. `goal-setup` writes the levers and their kill tests; the loop takes the biggest
+  gap from there.
 
 Say which fork you took and why, in one line, so the user can override it.
 
-<!-- nightshift drift 3/3 — the fork is scoped to brainstorming's OWN exit. Inside a goal
-     that is already decomposed, do NOT re-apply it per PHASES row: every row is feature-sized
-     by construction, so the fork would always pick writing-plans and add a plan document on
-     top of a plan. Phase execution belongs to loop-iteration. -->
+<!-- nightshift drift 3/3 — the fork is scoped to brainstorming's OWN exit. Inside a running
+     loop, do NOT re-apply it per lever: every lever the map names is feature-sized by
+     construction, so the fork would always pick writing-plans and add a plan document on
+     top of a plan. Executing a lever belongs to loop-iteration. -->
 
 This fork applies to brainstorming's own exit only. If you are already inside a
-decomposed goal, executing a PHASES row, this section does not apply — that path
-belongs to `loop-iteration`.
+running loop, working the lever the map names, this section does not apply — that
+path belongs to `loop-iteration`.
 
 ## The Process
 

@@ -64,7 +64,7 @@ for line in open(3):
     if not allowed(ref, deletion or rewrite):
         print(f"pre-push guard: '{remote} {ref}'"
               + (" (force/delete)" if (deletion or rewrite) else "")
-              + f" is outside {os.path.relpath(policy, root)} — docket it, don't push.", file=sys.stderr)
+              + f" is outside {os.path.relpath(policy, root)} — ask in chat, don't push.", file=sys.stderr)
         sys.exit(1)
 sys.exit(0)
 PY

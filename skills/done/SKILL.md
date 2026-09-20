@@ -1,6 +1,6 @@
 ---
 name: done
-description: Use when about to claim a task is complete, fixed, implemented, or ready to merge/deploy/push — and when the user asks "fatto?", "finito?", "possiamo mergiare?", or "quanto rischio a pushare?". Use before ending any session or loop iteration that changed code.
+description: Use at the boundary only — when about to claim something is ready to merge/deploy/push/publish, when ending a session that changed code, and when the user asks "fatto?", "finito?", "possiamo mergiare?", or "quanto rischio a pushare?". Not due inside a loop iteration (there the map delta is the report).
 ---
 
 # Definition of Done
@@ -9,7 +9,7 @@ description: Use when about to claim a task is complete, fixed, implemented, or 
 
 Completion claims in this workspace follow one report shape. It exists because the user had to extract the same facts by hand after every change ("Hai fatto tutti i test? ... Cosa devo controllare io a mano? Come testo le modifiche?" — typed for five months).
 
-**A "done" without this report is not done. Fill every section; write "none" rather than omitting one.**
+**A "done" at the boundary without this report is not done. Fill every section; write "none" rather than omitting one.** Boundary = PR to a shared branch, release, publication, deploy to shared infrastructure, end of a session that changed code. Inside a loop iteration the report is not due: the three-line digest and the map delta are.
 
 ## The completion report (required shape)
 
@@ -31,13 +31,13 @@ Completion claims in this workspace follow one report shape. It exists because t
 **Conventions & docs** — project rules touched by this change:
 - <e.g. domain events emitted for every new mutation? docs/ADR updated per project procedure? migrations?> → <status>
 
-**Residue** — new issues noticed, out-of-scope, logged where:
-- <item → Linear/docket ref, or "none">
+**Residue** — what you met on the path and could not fix in this pass (a fix that needs a decision of the four kinds, or exceeds the budget):
+- <item → where it is written (map or tracker), or "none">
 ```
 
 ## Rules
 
-- The report is written for the user, who often reads it **on a phone**: plain language, every project term explained in half a line or dropped, no bare sigla — docket items and phases are cited by their **title**, the ID at most in parentheses. Inside a goal loop, open with the trajectory line — objective was at X, is at Y, Z moves it next.
+- The report is written for the user, who often reads it **on a phone**: plain language, every project term explained in half a line or dropped, no bare sigla, things cited by **title**. Open with the map head line: the objective was at X, is at Y, Z moves it next.
 - Evidence means **fresh output from this session**, not "tests passed earlier" or "should pass".
 - A gate you skipped, reported honestly under **Not verified**, is acceptable. A gate silently omitted is a false claim.
 - Partial completion → say "Partially done", keep the same shape, list the remainder.

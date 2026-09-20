@@ -71,7 +71,30 @@ cmd = re.sub(r"\\\n", " ", cmd)
 if not re.search(r"\bgit\b[^\n|;&]*\bpush\b", cmd):
     sys.exit(0)
 
-root = os.environ.get("CLAUDE_PROJECT_DIR") or data.get("cwd") or os.getcwd()
+def command_root(cmd, default):
+    """The policy belongs to the repo being pushed, not to the session's project (landmine
+    measured 2026-08-16 and paid again 2026-09-08: a push to another project from a harness session
+    was judged by harness's policy). A leading/segment `cd <dir>` or a `git -C <dir>` names
+    that repo; otherwise the session root stands."""
+    # an explicit `git -C <dir>` names the pushed repo and wins over any cd; a `cd` also
+    # counts inside a subshell `(cd x && git push)` (audit 2026-09-13: the 16/8 landmine
+    # in that exact shape was still judged by the session's policy)
+    m = re.search(r"\bgit\s+-C\s+([^\s;&|]+)", cmd)
+    last = m.group(1) if m else None
+    if last is None:
+        for m in re.finditer(r"(?:^|[;&|(]\s*)cd\s+([^\s;&|)]+)", cmd):
+            last = m.group(1)
+    if last is None:
+        return default
+    # a relative cd is relative to the session's root, not to wherever the hook process runs
+    target = os.path.abspath(os.path.join(default, os.path.expanduser(last.strip("'\""))))
+    # the target's policy wins only if it exists; a cd into a policy-less directory (a
+    # clone in /tmp, a scratch dir) stays under the session's policy, never a free pass
+    if os.path.isfile(os.path.join(target, ".harness", "push-policy")):
+        return target
+    return default
+
+root = command_root(cmd, os.environ.get("CLAUDE_PROJECT_DIR") or data.get("cwd") or os.getcwd())
 policy_path = os.path.join(root, ".harness", "push-policy")
 if not os.path.isfile(policy_path):
     sys.exit(0)  # project hasn't opted in
@@ -102,12 +125,37 @@ def push_calls(toks):
             continue
         yield toks[i + 1:next((g for g in git_at if g > i), len(toks))]
 
-pushes = []
-for s in re.split(r"[|;&]|&&|\|\|", cmd):
+def segments(cmd):
+    """Split on shell separators OUTSIDE quotes. Splitting the raw text on `;` cut a quoted
+    commit message in half (2026-09-08: a message containing "un push a <project> ...; ..."
+    was judged as `git push a <project>`); shlex with punctuation_chars keeps the quotes
+    whole and yields the operators as their own tokens."""
     try:
-        toks = shlex.split(s)
+        lex = shlex.shlex(cmd, posix=True, punctuation_chars=True)
+        lex.whitespace_split = True
+        # shlex.shlex defaults to commenters="#": `--format=%h#%s && git push` lost the whole
+        # push and let it through (audit 2026-09-13, regression of 20be818). A shell command
+        # sent by the tool has no comments to honour.
+        lex.commenters = ""
+        toks = list(lex)
     except ValueError:
-        toks = s.split()
+        for s in re.split(r"[|;&]|&&|\|\|", cmd):
+            try:
+                yield shlex.split(s)
+            except ValueError:
+                yield s.split()
+        return
+    seg = []
+    for t in toks:
+        if t in (";", "&", "&&", "|", "||", ";;"):
+            yield seg
+            seg = []
+        else:
+            seg.append(t)
+    yield seg
+
+pushes = []
+for toks in segments(cmd):
     pushes.extend(push_calls(toks))
 if not pushes:
     sys.exit(0)  # "push" was only a substring: no real push in the command
@@ -139,7 +187,7 @@ remote, ref, forced = verdict
 reason = (f"push-guard: `git push {remote} {ref}`" + (" with --force" if forced else "") +
           f" is outside {os.path.relpath(policy_path, root)}. Allowed: " +
           "; ".join(f"{r['remote']} {r['ref']}{' (force-ok)' if r['force_ok'] else ''}" for r in rules) +
-          ". Per ORCHESTRATION §4 this is an authority edge: docket it instead of pushing.")
+          ". Per ORCHESTRATION §6 pushing outside the policy is never automated: ask in chat, one line.")
 
 print(json.dumps({
     "hookSpecificOutput": {

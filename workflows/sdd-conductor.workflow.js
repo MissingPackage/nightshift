@@ -12,8 +12,10 @@
 // (the runtime cannot resume an agent inside a workflow).
 //
 // BLOCKED tasks do not stop the build (design §3): they end up in blockedTasks +
-// docketEntries in the return value — it is the CALLER (the session) that appends them
-// to the docket; the runtime does not write files.
+// docketEntries in the return value — it is the CALLER (the session) that records them in
+// the map: a decision of the four kinds (irreversible, spend, public, change of objective)
+// goes to HANDOFF section 4, anything else is a line in .harness/tried.md. The runtime
+// does not write files.
 //
 // Invoke: Workflow({name: 'sdd-conductor', args: {spec: '<US + AC + read-first>',
 //   projectDir: '<root of the target project>', suiteCmd: '<suite command>',
@@ -393,7 +395,7 @@ for (let w = 0; w < waves.length; w++) {
     return { status: 'blocked', wavesRun, done, blockedTasks, docketEntries, suiteOutput: (suite || {}).suiteOutput || '', note: 'post-merge red suite: build stopped (gate by exception)' }
   }
   if (A.steering && w + 1 < waves.length) {
-    // opt-in B4b: one wave per invocation, the PI steers between invocations
+    // opt-in B4b: one wave per invocation, the user steers between invocations
     return { status: 'wave-complete', wavesRun, done, blockedTasks, docketEntries, nextWave: waves[w + 1], note: 'steering: to continue, re-invoke with steering:false and the resumeFromRunId of THIS run (the waves already done come back from cache; a new invocation with just the spec would always restart from wave 0)' }
   }
 }
@@ -404,5 +406,5 @@ return {
   done,
   blockedTasks,
   docketEntries,
-  note: 'the docketEntries must be appended by the caller to the goal docket (the runtime does not write files)',
+  note: 'the caller records the docketEntries in the map: a decision of the four kinds (irreversible, spend, public, change of objective) goes to HANDOFF section 4, anything else is a line in .harness/tried.md (the runtime does not write files)',
 }

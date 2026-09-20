@@ -1,7 +1,7 @@
 {
   "name": "nightshift",
-  "version": "1.0.0",
-  "description": "A harness for long-horizon Claude Code work: goals decomposed into loop-runnable phases, hooks that catch the bad session, verified iterations, and decisions that stay yours.",
+  "version": "2.0.0",
+  "description": "A harness for long-horizon Claude Code work: one map per project with the objective and the distance to it, a loop that kills ideas with cheap tests, hooks that catch the bad session, and four kinds of decision that stay yours.",
   "author": {
     "name": "MissingPackage"
   },
@@ -18,6 +18,6 @@
     "autonomy",
     "verification",
     "loop",
-    "goals"
+    "objectives"
   ]
 }

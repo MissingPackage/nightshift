@@ -16,9 +16,10 @@ systemctl --user list-timers claude-nightly*        # confirm
 journalctl --user -u claude-nightly.service -f      # log of the first run
 ```
 
-The nightly prompt (systemd/nightly-prompt.md) re-anchors from HANDOFF+docket, runs ONE
-iteration of decidable work (unattended test §4: never PI rulings, never pushes, never
-live config), and always closes with commit+digest+HANDOFF+notification. With Telegram
+The nightly prompt (systemd/nightly-prompt.md) re-anchors from the map (HANDOFF.md) and the
+tail of `.harness/tried.md`, runs ONE iteration on the biggest gap (never one of the four kinds
+of decision, never pushes, never live config), and always closes with commit, map redrawn,
+digest and notification. With Telegram
 active (B7 ✓), the morning digest reaches your phone.
 
 ## B. Repos on GitHub — cloud schedule
@@ -32,13 +33,13 @@ repo).
 
 Your month's #1 friction: 6+ sessions dead on limits mid-task, manual resume.
 Rules (now also in skills/loop-iteration):
-1. **Checkpoint on clean boundaries**: every iteration closes with commit+digest+HANDOFF —
+1. **Checkpoint on clean boundaries**: every iteration closes with commit, map and digest —
    an interruption always lands on restartable state (already our standard).
 2. **Pre-limit check**: before a long operation (subagent fan-out, multi-run eval, new
-   phase), ask whether the session's limits can carry it; on concrete doubt, clean
+   lever), ask whether the session's limits can carry it; on concrete doubt, clean
    hand-back NOW. One fewer iteration beats a half-done merge.
 3. **Resume without 'continue'**: the next run (timer/schedule) restarts FROM DISK
-   (HANDOFF §1 + docket): no human prompt required. If a run dies dirty, the next one
+   (the map and `.harness/tried.md`): no human prompt required. If a run dies dirty, the next one
    finds the worktree and says so in the digest instead of feigning cleanliness.
 
 ## Budget (ruling B2)

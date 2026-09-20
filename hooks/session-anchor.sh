@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# SessionStart hook — kills re-orientation typing ("facciamo il punto", FM6): injects
-# HANDOFF.md §1 (next decidable) and the active goal dirs at session start, if present.
+# SessionStart hook — kills re-orientation typing ("facciamo il punto"): injects the map head
+# (HANDOFF.md §1) at session start, plus the count of decisions waiting in §4, if present.
 #
 # Install:
 #   cp session-anchor.sh ~/.claude/hooks/ && chmod +x ~/.claude/hooks/session-anchor.sh
@@ -24,9 +24,7 @@ for name in ("HANDOFF.md", os.path.join("research", "AGENDA.md")):
         handoff = p
         break
 
-goal_dirs = sorted(glob.glob(os.path.join(root, ".harness", "goals", "*")))
-
-if not handoff and not goal_dirs:
+if not handoff:
     sys.exit(0)
 
 parts = []
@@ -52,77 +50,20 @@ if handoff:
     section = "\n".join(keep).strip() or "\n".join(lines[:25])
     parts.append(f"{os.path.relpath(handoff, root)} — current anchor:\n{section}")
 
-def open_docket_items(path):
-    # D5a: goal dockets use `## D<n>` entries closed by a `**RULING:** <text>` line;
-    # an entry is OPEN while its ruling is the `_` placeholder. Bullet counting stays
-    # as fallback for legacy bullet dockets.
-    lines = open(path, encoding="utf-8", errors="replace").read().splitlines()
-    rulings = [l.strip() for l in lines if l.strip().startswith("**RULING")]
-    if rulings:
-        n = 0
-        for r in rulings:
-            val = r.split(":**", 1)[-1].strip() if ":**" in r else ""
-            if not val or val.startswith("_"):
-                n += 1
-        return n
-    return sum(1 for l in lines if l.lstrip().startswith("- ") and "RULED" not in l)
-
-_ROW_LIVE = re.compile(r"\|\s*\*{0,2}(ready|blocked|in[- ]progress)\*{0,2}\s*\|?\s*$", re.I)
-
-def goal_is_live(gdir):
-    """A goal asks for attention only if it is not paused and still has rows to do.
-    Fixed 2026-08-12 on a finding by the session in another project: counting the dockets
-    of CLOSED goals inflated the view (35 entries announced against 22 real)."""
-    gm = os.path.join(gdir, "GOAL.md")
+# 2026-09-08: the anchor injects the map head (HANDOFF §1) and the count of decisions waiting
+# in §4, nothing else. The per-goal docket listing and the cross-project decision counts are
+# gone with the goal/docket spine (ORCHESTRATION §1): announcing 8 goals and 41 open decisions
+# at every start put the session in the clerk's chair before the first prompt.
+if handoff:
     try:
-        if os.path.isfile(gm) and "STATUS: PAUSED" in open(
-                gm, encoding="utf-8", errors="replace").read(600):
-            return False
+        text = open(handoff, encoding="utf-8", errors="replace").read()
+        m = re.search(r"^## 4\.?[^\n]*\n(.*?)(?=^## |\Z)", text, re.S | re.M)
+        if m:
+            n_dec = sum(1 for l in m.group(1).splitlines() if l.lstrip().startswith(("- ", "* ", "1", "2", "3")))
+            if n_dec:
+                parts.append(f"decisions waiting in HANDOFF §4: {n_dec}")
     except Exception:
         pass
-    ph = os.path.join(gdir, "PHASES.md")
-    if not os.path.isfile(ph):
-        return True  # not yet decomposed: live by definition
-    try:
-        return any(_ROW_LIVE.search(l) for l in
-                   open(ph, encoding="utf-8", errors="replace"))
-    except Exception:
-        return True
-
-for g in goal_dirs:
-    if not goal_is_live(g):
-        continue
-    slug = os.path.basename(g)
-    docket = os.path.join(g, "docket.md")
-    n_open = open_docket_items(docket) if os.path.isfile(docket) else 0
-    parts.append(f"active goal '{slug}' — open docket items: {n_open}")
-
-# C10 (2026-08-12): cross-project view of open decisions — 16 entries stuck 26 days in a
-# project never reopened because the anchor only looked at the cwd. Things get brought
-# to the PI, not waited for.
-try:
-    proj_root = os.path.expanduser(os.environ.get("HARNESS_PROJECTS_ROOT", "~/Projects"))
-    others = []
-    for proj in sorted(os.listdir(proj_root)) if os.path.isdir(proj_root) else []:
-        pdir = os.path.join(proj_root, proj)
-        if os.path.realpath(pdir) == os.path.realpath(root):
-            continue
-        total = 0
-        for gdir in glob.glob(os.path.join(pdir, ".harness", "goals", "*")):
-            if not goal_is_live(gdir):
-                continue  # paused or already closed: not pending attention
-            dk = os.path.join(gdir, "docket.md")
-            if os.path.isfile(dk):
-                total += open_docket_items(dk)
-        if total:
-            others.append((total, proj))
-    if others:
-        others.sort(reverse=True)
-        listing = ", ".join(f"{name}: {n}" for n, name in others[:5])
-        more = f" (+{len(others)-5} projects)" if len(others) > 5 else ""
-        parts.append(f"open decisions in OTHER projects — {listing}{more}")
-except Exception:
-    pass  # the cross-project view must never break the anchor
 
 # A fix that exists in the repo and doesn't run on the machine doesn't exist (the user's
 # permanent rule, 2026-08-14; paid for that morning: hooks/loop-state.sh fixed here and

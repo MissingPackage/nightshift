@@ -47,7 +47,7 @@ These files refer to sibling superpowers skills that Nightshift does not ship �
 Those references resolve only if you also install upstream. Left alone they are dead pointers,
 so treat them as reading suggestions rather than instructions. Where Nightshift has its own
 answer, use it: `root-cause` covers systematic debugging, `done` covers
-verification-before-completion, and `loop-iteration` covers executing plans phase by phase.
+verification-before-completion, and `loop-iteration` covers executing a plan step by step.
 
 ## The adaptations, and the reasoning
 
@@ -59,18 +59,19 @@ still true there; if you use upstream directly, consider retuning the descriptio
 
 **`brainstorming` 2/3 — the architectural exit forks by scale.** Upstream hardwires
 `writing-plans` as the only terminal state, which presupposes a plan is the terminal artifact.
-Under this harness, project-sized work terminates in a goal contract instead: `PHASES.md` is
-where a roadmap gets built, not presupposed.
+Under this harness, project-sized work terminates in a map instead: `HANDOFF.md` is where the
+objective, the distance and the levers get written, and the loop picks the biggest gap each time.
 
-**`brainstorming` 3/3 — the fork is scoped to brainstorming's own exit.** Inside an
-already-decomposed goal, every PHASES row is feature-sized by construction, so re-applying the
-fork per row would always select `writing-plans` and stack a plan document on top of a plan.
-Phase execution belongs to `loop-iteration`.
+**`brainstorming` 3/3 — the fork is scoped to brainstorming's own exit.** Inside a running loop,
+every lever the map names is feature-sized by construction, so re-applying the fork per lever
+would always select `writing-plans` and stack a plan document on top of a plan. Executing a
+lever belongs to `loop-iteration`.
 
 **`subagent-driven-development` — "Rulings, not stalls" scoped to granted authority.** Upstream
 v6.3.0 tells the agent to decide conflicts, ambiguities, plan defects and cap overruns itself,
-stopping for only four things. Under this harness the goal contract names an authority boundary,
-and `ORCHESTRATION.md` §4 routes an authority edge to the docket with the phase blocked. Without
-this scoping the skill and the protocol would give opposite instructions on the same event. The
-principle upstream is right about survives: a session parked on a question the agent had the
-authority to answer costs the user their whole day and buys nothing.
+stopping for only four things. Under this harness the authority boundary is `ORCHESTRATION.md`
+§3 (the four kinds of decision that reach the user) and §6 (never automated); an authority edge
+blocks the task and goes to the map's section 4, in chat, one line. Without this scoping the
+skill and the protocol would give opposite instructions on the same event. The principle upstream
+is right about survives: a session parked on a question the agent had the authority to answer
+costs the user their whole day and buys nothing.

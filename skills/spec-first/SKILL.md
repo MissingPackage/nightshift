@@ -11,7 +11,7 @@ The spec shape below is salvaged from this workspace's own best specs (the Feb 2
 pipeline, a research-site brief) — the SpecKit engine is retired, the shape earned its
 keep. A spec is the PI's judgment made editable; the draft saves typing, the edit IS the judgment.
 
-## The shape (write to `specs/<slug>.md`, or `.harness/goals/<slug>/SPEC.md` when goal-bound)
+## The shape (write to `specs/<slug>.md`)
 
 ```
 # <Feature name>

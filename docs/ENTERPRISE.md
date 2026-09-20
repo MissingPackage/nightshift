@@ -1,6 +1,6 @@
 # ENTERPRISE — the harness without hooks (capabilities lost, mitigations, install)
 
-Answers the PI's question (goal opus5-enterprise, 2026-07-25): «sul Claude Enterprise
+Answers the user's question (2026-07-25): «sul Claude Enterprise
 di lavoro gli hook sono bloccati: che capacità mi perdo?» (on the work Claude Enterprise
 hooks are blocked: what capabilities do I lose?). Primary source:
 code.claude.com/docs/en/settings (fetch 2026-07-25). [ASSUMED] the org's exact policy
@@ -32,14 +32,14 @@ model follows but nothing enforces), **lost**.
 
 | hook (event) | function | mitigation without hooks | residue |
 |---|---|---|---|
-| session-anchor (SessionStart) | injects HANDOFF §1 + active goals + open dockets at session start (kills the "facciamo il punto" ritual, FM6) | the instruction is already in the project CLAUDE.md ("Read HANDOFF.md §1 before exploring"); in enterprise it becomes the ONLY anchoring line — keep it at the top | compliance (high: current models re-anchor well from the filesystem; it is the pattern Anthropic's own docs recommend for long-horizon work) |
+| session-anchor (SessionStart) | injects the map head (HANDOFF §1) + the count of decisions waiting in §4 at session start (kills the "facciamo il punto" ritual, FM6) | the instruction is already in the project CLAUDE.md ("Read HANDOFF.md §1 before exploring"); in enterprise it becomes the ONLY anchoring line — keep it at the top | compliance (high: current models re-anchor well from the filesystem; it is the pattern Anthropic's own docs recommend for long-horizon work) |
 | firefight-catch (UserPromptSubmit) | intercepts the "11pm voice": FM1 polling, FM2 paste without framing, FM3 firefighting verbs without a cause, FM5 double send <3min | done and root-cause carry the triggers in their descriptions ("fatto?", "non funziona", traceback pastes) ⇒ native skill auto-selection covers FM1/FM2/FM3 | compliance for FM1/2/3; **FM5 lost** (requires cross-prompt state that only a hook has) |
 | push-guard (PreToolUse:Bash) | denies pushes outside `.harness/push-policy` | CLAUDE.md rule + MECHANICAL recovery via a git `pre-push` hook reading the SAME policy (§4) — and it would also cover human pushes | compliance today; mechanical (better than the original) with §4 |
 | handoff-freshness (Stop) | at session end warns if HANDOFF.md is older than the repo (file delta) | no Stop event available; /handoff discipline (already in the contract: "End every session that changed state by refreshing HANDOFF.md") + the check is a command the model can run itself at session start | compliance (the most fragile of them: the it5+it9 incident that produced R12 happened WITH the written rule and WITHOUT the hook) |
 | notify-ntfy (Notification) | phone push via ntfy | native OS terminal notifications (they don't go through hooks); the outbound curl to ntfy would be a candidate for the corporate deny anyway | lost (partial substitute: native desktop notifications) |
 | — nightshift-hud statusline | cosmetic HUD (zero context cost) | none with `disableAllHooks`; maybe survives with `allowManagedHooksOnly` (§1) | lost or intact depending on the key — cosmetic, not harness |
 
-**Honest summary**: layer L4 (mechanical enforcement) is lost and almost everything else
+**Honest summary**: the mechanical-enforcement layer is lost and almost everything else
 is kept. The two hard guarantees (attribution, push) are recoverable in mechanical form
 via git hooks (§4) because git is NOT governed by Claude Code's managed settings. The
 three context injections (anchor, firefight, freshness) degrade to compliance — exactly
@@ -50,9 +50,9 @@ FM5 and the phone push are the only dry losses.
 
 File-based, never touched by the hook block: global and project CLAUDE.md · all the
 skills (done, root-cause, loop-iteration, handoff, peripheral-vision, spec-first,
-goal-setup + the 4 vendored + humanizer) · the agents (loop-verifier, scout,
+goal-setup + the 4 vendored) · the agents (loop-verifier, scout,
 consistency-sweep, adversarial-reviewer) · the commands · the executable workflows ·
-HANDOFF/AGENDA/docket (the spine is filesystem) · auto-memory. The same
+the map and `.harness/tried.md` (the spine is filesystem) · auto-memory. The same
 ledger attributes the bulk of the closable delta to THIS layer (discipline + continuity),
 not to the hooks: the enterprise harness stays a harness — it loses the guardrail, not
 the method.
@@ -81,9 +81,11 @@ tests/run.sh.
    `disableSkillShellExecution`.
 5. MCP/plugins: try adding a known MCP ⇒ discover `allowedMcpServers`; same for the
    plugin marketplace.
-6. `/goal`: verify whether the CLI's session Stop-hook works with the hook block
-   active [VERIFY on-site — the docs don't say; it is an internal CLI hook, not a
-   user command hook, so it plausibly survives, but it must be observed].
+6. `/loop`: verify whether the native loop and its scheduled wake-ups still work with
+   the hook block active [VERIFY on-site — the docs don't say; it is CLI-internal, not
+   a user hook, so it plausibly survives, but it must be observed]. Our own Stop hook
+   `loop-guard` is blocked either way, so a turn that ends without a schedule kills the
+   loop silently: re-read the map at the next session start.
 7. Corporate `permissions.deny`: try `curl` and `git push` (with an empty local
    policy) to map the denies.
 

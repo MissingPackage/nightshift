@@ -1,28 +1,21 @@
 ---
-description: The coffee report — cross-goal aggregate, arrives on its own (scheduled, C10)
+description: The coffee report — cross-project map deltas, arrives on its own (scheduled)
 ---
 
-Assemble the AGGREGATED morning report across all projects (ruling C10, 2026-08-12: runs
-scheduled via tools/install-schedules.sh, no longer a ritual the user invokes — they read
-it from the app over breakfast). Write the report itself in the user's own language — user surface,
-"match the user's language" rule; only these instructions are English. Plain language: every
-project term explained in half a line or omitted; items and phases cited by TITLE, never
-the bare ID. Read-only: decisions remain his. Order:
+Assemble the morning report across all projects (runs scheduled via
+tools/install-schedules.sh; the user reads it from the app over breakfast). Write the report
+in the user's own language, plain language: every project term explained in half a line or omitted, things cited
+by title never by ID. Read-only. Order:
 
-1. **Trajectories.** For every project under ~/Projects with active `.harness/goals/`
-   (skip goals with `STATUS: PAUSED`): ONE line per goal — objective, distance now vs
-   yesterday, what moves it next. Numbers from the tail of `digests.md`, not
-   reconstructed.
-2. **The night.** The digests.md entries after the last report: what the autonomous work
-   produced, 2-3 lines per goal, most recent last. Loops dead or revived by the watchdog
-   (~/.claude/loop-watchdog.log): say it first, it is the first thing he wants to know.
-3. **Open decisions, frontier format.** All pending decisions cross-project in ONE
-   batch: numbered, one idea per question, ordered by importance, each with options and
-   a recommended answer + cost of not deciding. Partial answers are the norm; he replies
-   in chat, the agent transcribes into the record (docket). Never more than ~6: the rest
-   wait for the next round, mention them only as a count.
-4. **One line of health.** Active timers, HANDOFF over 80 lines, silent hooks — only if
-   there is something to say.
+1. **Maps.** For every project under ~/Projects with a `HANDOFF.md` changed in the last 24 hours:
+   ONE line per project — the head line now vs yesterday (objective, value, gap). Numbers from
+   the map and the tail of `.harness/tried.md`, not reconstructed.
+2. **The night.** For each project with wake-ups after 23:00 (`.harness/loop-state.json` and
+   `~/.claude/loop-watchdog.log`): what was tried and what it said, from tried.md, two lines per
+   project. Loops that died or were revived by the watchdog: say it first.
+3. **Decisions.** All items in the maps' section "Decisions for the user" (§4), across projects, in
+   ONE batch: numbered, one line each with the default. Never more than six.
+4. **One line of health** only if there is something to say: a map over 150 lines, a map whose
+   head line has not moved in two sessions, a silent hook, a timer that did not fire.
 
-Total output ≤ 40 lines. If the night produced nothing and there are no decisions:
-say so in 3 lines and close — a long empty report is worse than no report.
+Total output ≤ 30 lines. If nothing moved and there are no decisions: three lines and close.

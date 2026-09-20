@@ -97,7 +97,8 @@ const MAP_M = { model: A.mapModel || 'opus' }
 // ---- Map: ONE agent. Reads the good form, the docs, every candidate site; enumerates
 // mechanically (a grep beats reading everything); maps dependencies in Chesterton's
 // direction too — before changing/removing anything, verify it is not there because
-// something else depends on it. The worklist is FROZEN here: later finds go to the docket.
+// something else depends on it. The worklist is FROZEN here: later finds are recorded by the
+// caller (a line in .harness/tried.md), never added to this run.
 phase('Map')
 const map = await agent(
   `Target repo (ABSOLUTE path, confirm with pwd): ${A.projectDir}\n` +

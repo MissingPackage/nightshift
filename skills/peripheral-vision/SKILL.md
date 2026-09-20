@@ -1,6 +1,6 @@
 ---
 name: peripheral-vision
-description: Use at the end of substantive coding, debugging, or exploration work — before the completion report — and whenever the user asks "c'è altro che dovrei sapere?" or requests a risk scan of recent changes.
+description: Use only when the user asks "c'è altro che dovrei sapere?", "cosa hai notato?", or requests a risk scan of recent changes. Not a default step of any report.
 ---
 
 # Peripheral Vision
@@ -9,7 +9,7 @@ description: Use at the end of substantive coding, debugging, or exploration wor
 
 While working you see things outside the task: rot, contradictions, tripwires. By default that signal is discarded to "stay concise". This skill un-suppresses the *reporting* — it cannot create noticing that didn't happen (for deep sweeps use the `scout` agent instead).
 
-## The scan (30 seconds, before the completion report)
+## The scan (30 seconds, on request)
 
 Ask yourself, strictly about things you ALREADY touched or read this session:
 
@@ -24,16 +24,16 @@ Append to the completion report:
 
 ```
 **Noticed (outside task):**
-1. <observation> — <why it's load-bearing> — <suggested owner: docket/Linear/now>
+1. <observation> — <why it's load-bearing> — <fixed now / needs a decision: which kind>
 ```
 
 - **Max 3 items.** More than 3 means you're listing, not judging.
 - Each item must pass: "would the user act differently knowing this?" If not, drop it.
-- Never silently fix out-of-scope findings; report + log (project docket or Linear).
+- A finding you can fix in the same pass is fixed, not reported (fix what you meet on the path); only what needs a decision of the four kinds or exceeds the budget is reported.
 - Nothing qualified → write nothing. An empty ritual line trains the reader to skip the section.
 
 ## Common mistakes
 
 - Padding with style nits to fill the quota — the cap is a maximum, not a target.
-- Re-reporting the same known issue every session — check the docket first; repeats reference the existing entry.
+- Re-reporting the same known issue every session — check the map (landmines, fog) first; repeats reference the existing line.
 - Turning the scan into a new exploration — this reports what you already saw; it spends zero new tool calls (that's the scout agent's job).

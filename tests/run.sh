@@ -140,18 +140,9 @@ run_hook session-anchor.sh "$(json_cwd "$P1")"
 assert_not_contains "secret-should-not-leak"
 
 P2="$SANDBOX/proj-empty"; mkdir -p "$P2"
-t "anchor: no HANDOFF, no goals → silent"
+t "anchor: no HANDOFF → silent"
 run_hook session-anchor.sh "$(json_cwd "$P2")"
 assert_silent
-
-P3="$SANDBOX/proj-goals"; mkdir -p "$P3/.harness/goals/g1"
-printf -- '- decide retention window\n- decide event schema\n- RULED 07-01: keep UPSERT\n' > "$P3/.harness/goals/g1/docket.md"
-t "anchor: bullet-docket open items counted"
-run_hook session-anchor.sh "$(json_cwd "$P3")"
-case "$OUT" in # NB: non-ASCII is \u-escaped in the JSON, keep patterns ASCII-only
-  *"active goal 'g1'"*"open docket items: 2"*) ok ;;
-  *) bad "expected g1 with 2 open items: ${OUT:0:180}" ;;
-esac
 
 P4="$SANDBOX/proj-agenda"; mkdir -p "$P4/research"
 printf '# AGENDA\n\n## 1. Next decidable\nGrade WP7 prediction.\n' > "$P4/research/AGENDA.md"
@@ -159,23 +150,13 @@ t "anchor: research/AGENDA.md fallback works"
 run_hook session-anchor.sh "$(json_cwd "$P4")"
 assert_contains "Grade WP7 prediction"
 
-t "anchor: HANDOFF + goals both reported"
-mkdir -p "$P1/.harness/goals/g2"
-printf -- '- open item\n' > "$P1/.harness/goals/g2/docket.md"
-run_hook session-anchor.sh "$(json_cwd "$P1")"
-case "$OUT" in
-  *"Approve PHASES row 3"*"active goal 'g2'"*) ok ;;
-  *) bad "expected both HANDOFF §1 and goal line: ${OUT:0:200}" ;;
-esac
-
-# --- ex known-gaps, promoted to PASS after ruling D5 "both approved" (2026-07-10) ---
-P5="$SANDBOX/proj-header-docket"; mkdir -p "$P5/.harness/goals/g3"
-printf '## D1 · plan-check\n**RULING:** _\n\n## D2 · thing\n**RULING:** _(scegli tu)\n\n## D3 · done\n**RULING:** approvato 07-10\n' > "$P5/.harness/goals/g3/docket.md"
-t "anchor: '## D' docket — unresolved RULING placeholders counted (D5a)"
+t "anchor: decisions waiting in §4 counted"
+P5="$SANDBOX/proj-map"; mkdir -p "$P5"
+printf '# HANDOFF — m\n\n## 1. Objective and distance\ndecode 24 tok/s, ceiling 40\n\n## 4. Decisions for the user\n- publish the paper (default: yes)\n- buy the bigger box (default: no)\n\n## 5. Landmines\n- x\n' > "$P5/HANDOFF.md"
 run_hook session-anchor.sh "$(json_cwd "$P5")"
-case "$OUT" in
-  *"open docket items: 2"*) ok ;;
-  *) bad "expected 2 open (2 placeholders, 1 resolved): ${OUT:0:160}" ;;
+case "$OUT" in # NB: non-ASCII is \u-escaped in the JSON, keep patterns ASCII-only
+  *"decode 24 tok/s"*"decisions waiting in HANDOFF"*"2"*) ok ;;
+  *) bad "expected head + 2 decisions: ${OUT:0:200}" ;;
 esac
 
 P6="$SANDBOX/proj-crash"; mkdir -p "$P6"
@@ -225,6 +206,58 @@ run_hook push-guard.sh "$(json_cmd 'git push --force origin main' "$D")"
 assert_silent
 t "guard: refspec src:dst judged by destination"
 run_hook push-guard.sh "$(json_cmd 'git push origin HEAD:main' "$D")"
+assert_silent
+
+# The policy belongs to the repo being PUSHED, not to the session that types the command
+# (2026-09-08): a `cd <repo>` or `git -C <repo>` names that repo. A cd into a directory
+# with no policy is not a free pass — the session's policy still stands.
+t "guard: policy resolved from the repo named by cd when it has one (2026-09-08)"
+S=$(pg_proj session-deny 'origin nothing-allowed'); T=$(pg_proj target-open 'origin main')
+run_hook push-guard.sh "$(json_cmd "cd $T && git push origin main" "$S")"
+assert_silent
+t "guard: cd into a policy-less dir stays under the session policy"
+T0=$(pg_proj target-none '')
+run_hook push-guard.sh "$(json_cmd "cd $T0 && git push origin main" "$S")"
+assert_deny
+t "guard: git -C <repo> uses that repo's policy"
+T2=$(pg_proj target-main 'origin main')
+run_hook push-guard.sh "$(json_cmd "git -C $T2 push origin main" "$S")"
+assert_silent
+t "guard: cd into a denying repo is denied even from a policy-less session"
+N=$(pg_proj session-none ''); T3=$(pg_proj target-deny 'origin only-this')
+run_hook push-guard.sh "$(json_cmd "cd $T3 && git push origin main" "$N")"
+assert_deny
+
+t "guard: the word push inside a quoted commit message with ; is not a push (2026-09-08)"
+D=$(pg_proj quoted 'origin feature/*')
+run_hook push-guard.sh "$(json_cmd 'git commit -m "note: a push to x was denied; now it is not" && git push origin feature/a' "$D")"
+assert_silent
+t "guard: ...and a real out-of-policy push after such a message is still denied"
+run_hook push-guard.sh "$(json_cmd 'git commit -m "a push to x; fine" && git push origin main' "$D")"
+assert_deny
+
+echo "== push-guard: shapes measured by the adversarial audit (2026-09-13) =="
+D=$(pg_proj hash-deny 'origin nothing-allowed')
+t "guard: an unquoted # earlier in the command does not swallow the push"
+run_hook push-guard.sh "$(json_cmd 'git log --format=%h#%s -1 && git push origin main' "$D")"
+assert_deny
+t "guard: ...nor a # inside a commit message"
+run_hook push-guard.sh "$(json_cmd 'git commit -m fix#42 && git push origin main' "$D")"
+assert_deny
+# the session policy here is permissive on purpose: the deny may only come from the repo
+# the command names, never from the session's own rules (otherwise the case would be green
+# on a hook that never looks at the target at all)
+S=$(pg_proj subshell-session 'origin *'); T=$(pg_proj subshell-target 'origin nothing-allowed')
+t "guard: (cd <repo> && git push) in a subshell is judged by that repo's policy"
+run_hook push-guard.sh "$(json_cmd "(cd $T && git push origin master)" "$S")"
+assert_deny
+t "guard: an explicit git -C wins over an unrelated cd"
+A=$(pg_proj c-allow 'origin *')
+run_hook push-guard.sh "$(json_cmd "cd $A && git -C $T push origin main" "$S")"
+assert_deny
+t "guard: a relative cd is resolved against the session root, not the hook's process cwd"
+mkdir -p "$T/sub/.harness"; printf 'origin main\n' > "$T/sub/.harness/push-policy"
+run_hook push-guard.sh "$(json_cmd 'cd sub && git push origin main' "$T")"
 assert_silent
 
 D=$(pg_proj any 'origin *')
@@ -512,7 +545,7 @@ import json,sys; s=json.load(open(sys.argv[1]+"/.harness/loop-state.json"))
 sys.exit(0 if s["status"]=="stopped" else 1)' "$LP"; then ok
 else bad "declared stop not recorded or guard blocking anyway"; fi
 
-t "session-anchor: closed and paused goals excluded from the decision count"
+t "session-anchor: goal directories are ignored (map spine, 2026-09-08)"
 SA="$SANDBOX/anchorproj"; mkdir -p "$SA/.harness/goals"/{live,closed,paused}
 printf '# H\n\n## 1. Next decidable\nx\n' > "$SA/HANDOFF.md"
 for g in live closed paused; do
@@ -523,18 +556,17 @@ printf '| 1 | phase | dw | none | src | **done** |\n' > "$SA/.harness/goals/clos
 printf '| 1 | phase | dw | none | src | ready |\n' > "$SA/.harness/goals/paused/PHASES.md"
 printf 'GOAL: x\nSTATUS: PAUSED (test)\n' > "$SA/.harness/goals/paused/GOAL.md"
 run_hook session-anchor.sh "$(printf '{"cwd":"%s"}' "$SA")"
-if printf '%s' "$OUT" | grep -q "active goal 'live'" &&
-   ! printf '%s' "$OUT" | grep -q "active goal 'closed'" &&
-   ! printf '%s' "$OUT" | grep -q "active goal 'paused'"; then ok
-else bad "expected only the live goal: $(printf '%s' "$OUT" | head -c 200)"; fi
+if printf '%s' "$OUT" | grep -q "Next decidable" &&
+   ! printf '%s' "$OUT" | grep -q "active goal"; then ok
+else bad "expected the map head and no goal lines: $(printf '%s' "$OUT" | head -c 200)"; fi
 
-t "handoff-freshness: HANDOFF fresh but over 80 lines → warn"
-HF="$SANDBOX/hf80"; mkdir -p "$HF"; git -C "$HF" init -q
+t "handoff-freshness: HANDOFF fresh but over 150 lines → warn"
+HF="$SANDBOX/hf150"; mkdir -p "$HF"; git -C "$HF" init -q
 printf 'x\n' > "$HF/f.txt"; git -C "$HF" add f.txt
 git -C "$HF" -c user.email=t@t -c user.name=t commit -qm x
-python3 -c 'open("'"$HF"'/HANDOFF.md","w").write("## 1. Next decidable\n"+"line\n"*99)'
+python3 -c 'open("'"$HF"'/HANDOFF.md","w").write("## 1. Next decidable\n"+"line\n"*169)'
 run_hook handoff-freshness.sh "$(python3 -c 'import json,sys; print(json.dumps({"cwd":sys.argv[1]}))' "$HF")"
-if printf '%s' "$OUT" | grep -q 'limit 80'; then ok; else bad "no warn on a 100-line HANDOFF: $OUT"; fi
+if printf '%s' "$OUT" | grep -q 'limit 150'; then ok; else bad "no warn on a 170-line HANDOFF: $OUT"; fi
 
 t "session-anchor: repo ahead of the machine → drift warning (rule 2026-08-14)"
 DR="$SANDBOX/driftproj"; mkdir -p "$DR"

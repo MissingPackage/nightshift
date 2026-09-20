@@ -22,7 +22,7 @@ SCOUT REPORT — <area>, <date>
 1. [<lens>] <one-sentence finding>
    Evidence: <file:line / command output>
    Cost if ignored: <concrete failure it will cause>
-   Suggested routing: now | docket | Linear
+   Suggested routing: fixed now | needs a decision (which of the four kinds) | tracker
 FINDINGS DROPPED: <n> below the load-bearing bar.
 ```
 

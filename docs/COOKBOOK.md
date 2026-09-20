@@ -4,8 +4,9 @@ Each recipe names four things: **when** it applies, the **moves** (exact command
 agents), the **judgment that stays yours**, and the **failure path** — because a recipe that
 only describes the happy case is a demo, not a recipe.
 
-Shared substrate everywhere: the `ORCHESTRATION.md` state machine, files-as-spine, the
-done-report, the docket. Your typing budget per recipe is the goal text and the rulings.
+Shared substrate everywhere: one map per project (`HANDOFF.md`), `.harness/tried.md` for what
+was tried, the cheap test that can kill a lever as the internal control, and rigor at the
+boundary. Your typing budget per recipe is the objective and the decisions of the four kinds.
 Nothing else.
 
 > Every command, skill and agent named below is checked by `tests/check-references.sh` to
@@ -19,17 +20,18 @@ Nothing else.
 **When:** feature or fix work you want done while you sleep.
 
 **Moves:** *Evening* — `/goal-brief <idea>` → edit the draft, resolving every `[ASSUMED]` →
-`/goal` → `goal-setup` writes PHASES.md → you approve `plan-check` (60 seconds) →
-`/loop /product-loop`. *Overnight* — each iteration runs the unattended test
-(`ORCHESTRATION.md` §4); slices land branch-only; `loop-verifier` and `consistency-sweep` gate
-each one; digests accumulate.
+`/loop /product-loop`. *Overnight* — each iteration re-anchors on the map, takes the biggest gap
+on the user path, kills its levers with tests that run in minutes, lands slices branch-only,
+then redraws `HANDOFF.md` and appends three lines to `.harness/tried.md`. Every turn ends with
+the next wake-up scheduled; the Stop hook `loop-guard` refuses a close without one.
 
-**You rule on:** plan-check; the morning docket (merges, authority edges); one spot-audit diff
-if you want one.
+**You rule on:** the decisions of the four kinds waiting in the map's §4 (irreversible, spend,
+public, change of objective), batched in the morning; the merge; one spot-audit diff if you want
+one.
 
-**If it breaks:** the no-progress breaker blocks the phase, and the loop either takes the next
-independent phase or pauses with a notification. You never wake up to eight hours of retries on
-one wedged step.
+**If it breaks:** two iterations without the gap moving and the loop changes lever family; four
+and it stops by itself and says which of the three it suspects — objective, ceiling or method.
+You never wake up to eight hours of retries on one wedged step.
 
 ---
 
@@ -40,16 +42,18 @@ one wedged step.
 **Executable:** `workflows/research-campaign.workflow.js` — one work package per run:
 schema-forced pre-registration → execution → independent grader → hand-back memo.
 
-**Moves:** THESIS.md and AGENDA.md are yours to write → one `/goal` per work package, with
-prediction-gating instead of plan-check → `/loop /research-loop`: pre-register the prediction →
-execute → grade honestly against what you predicted → verifier → AGENDA §1 refresh → digest →
-self-pace to the next.
+**Moves:** the map's head line is the question and how much of the answer you have (a project
+that keeps `research/AGENDA.md` uses that as its map, never both) → `/loop /research-loop`:
+pre-register the prediction before any spend → execute the smallest run that can kill the
+hypothesis → grade against what you predicted, null results with the same care → redraw the map,
+three lines to `.harness/tried.md` → digest → self-pace to the next.
 
-**You rule on:** the docket — ontology admissions, framing, budget — through hand-back memos.
+**You rule on:** spend past the cap in the project's CLAUDE.md, anything public, a change of the
+question itself. In chat, one line each with the default that applies on a bare "ok".
 
 **If it breaks:** two dry iterations ⇒ hand back with both failure analyses attached, never a
-third attempt. The loop **stops by design** when every remaining item needs a human ruling;
-that is a correct ending, not a failure.
+third attempt. The loop **stops by design** when everything left is one of the four kinds; that
+is a correct ending, not a failure.
 
 ---
 
@@ -60,16 +64,17 @@ that is a correct ending, not a failure.
 **Executable:** `workflows/sdd-conductor.workflow.js` — spec → validated task graph → waves of
 implement + adversarial review → integrate.
 
-**Moves:** `brainstorming` → `spec-first` → you edit the spec → `goal-setup` (phases map onto
-task groups) → subagent-driven development: per task, a brief with an explicit `owns:` set,
+**Moves:** `brainstorming` → `spec-first` → you edit the spec → `goal-setup` writes the map (head
+line, levers, fog) → subagent-driven development: per task, a brief with an explicit `owns:` set,
 tool list and interface freeze → implementer → `adversarial-reviewer` round 1 → fix round →
 re-review → integrate. `scout` after each milestone; `consistency-sweep` before shipping.
 
 **You rule on:** the spec; interface freezes; ship / no-ship. Steering tokens are enough
 mid-flight — "looks right, go" — because the contract is in the brief, not in the conversation.
 
-**If it breaks:** a Critical finding blocks the task, not the build. A task blocked twice is
-docketed with both review verdicts attached.
+**If it breaks:** a Critical finding blocks the task, not the build. A task blocked twice comes
+back with both review verdicts attached, and the session records it: a decision of the four kinds
+goes to the map's §4, anything else is a line in `.harness/tried.md`.
 
 ---
 
@@ -78,14 +83,15 @@ docketed with both review verdicts attached.
 **When:** something is broken NOW and you are typing angry.
 
 **Moves:** paste whatever you have. `firefight-catch` injects the rails; `root-cause` runs:
-hypothesis + evidence → the agent acquires observations with its own tools → one change →
-verify against the original reproduction → done-report → residue to the docket.
+hypothesis + evidence → the agent acquires observations with its own tools → one change → verify
+against the original reproduction → say how the fix was verified, or that it wasn't. What the fix
+left behind is a lever in the map or a line in `.harness/tried.md`, never a debt comment.
 
 **You rule on:** nothing mid-fix. You are the sensor of last resort only — if the agent can
 read the log itself, it should.
 
-**If it breaks:** a second failed fix on the same symptom auto-escalates to a full
-investigation. There is no third patch.
+**If it breaks:** a second failed fix on the same symptom reopens the investigation instead of
+producing a third patch.
 
 ---
 
@@ -114,12 +120,13 @@ pattern that exists at 30% of its sites and reads as done — stops being expres
 
 **When:** shipping images, manifests, or migrations to an environment other people depend on.
 
-**Moves:** done-report green on the branch → build and push artifacts (a moving tag *and* an
-immutable one) BEFORE any manifest change → the deployment controller picks it up → the agent
-verifies through real sensors (logs, metrics, health endpoints) and reports the blast-radius
-line → rollback path is re-pointing to the previous immutable artifact, never editing manifests
-under pressure. `push-guard` plus the territory rules in your project's CLAUDE.md fence the
-whole flow; diffs to repositories you do not own are proposed, never applied.
+**Moves:** this is the boundary, so the boundary's rigor applies: the completion report (skill
+`done`) green on the branch → build and push artifacts (a moving tag *and* an immutable one)
+BEFORE any manifest change → the deployment controller picks it up → the agent verifies through
+real sensors (logs, metrics, health endpoints) and reports the blast-radius line → rollback path
+is re-pointing to the previous immutable artifact, never editing manifests under pressure.
+`push-guard` plus the territory rules in your project's CLAUDE.md fence the whole flow; diffs to
+repositories you do not own are proposed, never applied.
 
 **You rule on:** every mutation to shared state, and anything owned by another team.
 
@@ -137,8 +144,8 @@ a brief of the contested findings.
 
 **Moves:** `adversarial-reviewer` (deep, artifact-verified) **plus** a review from a different
 model family — a second family catches classes of gap the first is systematically blind to,
-which is the entire reason to pay for two → merge both finding sets into the docket → fix
-Criticals and Importants → `/pr-message` → you merge. Merge authority is never delegated.
+which is the entire reason to pay for two → merge both finding sets → fix Criticals and
+Importants → `/pr-message` → you merge. Merge authority is never delegated.
 
 **You rule on:** the contested findings. When two reviewers disagree, that disagreement is
 precisely the part worth your attention.
@@ -154,25 +161,26 @@ full reports to reconcile yourself.
 
 **Invoke:** `/weekly-maintenance`.
 
-**Moves:** docket triage across goals (rule, kill, or promote to your tracker) → verifier
-spot-audit: one PASS re-checked by hand, because a verifier that has drifted will keep passing
-things forever → a `mystery`-tagged docket item solved by hand this month → memory hygiene:
-HANDOFF files still short, project CLAUDE.md current, dead goals archived → hook health: pipe a
-fixture at each hook and confirm it still fires (ten seconds, and it is how you find the hook
+**Moves:** stale maps across projects (a head line that has not moved in two weeks, a map past
+150 lines, a §4 with more than three decisions) → one adversarial audit: a commit of the week
+picked at random, no cherry-picking, refuted by `adversarial-reviewer` against the map's
+objective → one mystery a month solved by hand before reading the analysis → memory hygiene:
+project CLAUDE.md current, auto-memory entries that a rule has since absorbed → hook health: pipe
+a fixture at each hook and confirm it still fires (ten seconds, and it is how you find the hook
 that broke silently three weeks ago).
 
 **You rule on:** everything here. This recipe is deliberately 100% human time — it is the
 twenty minutes that keeps the other seven honest.
 
-**If it breaks:** a harness bug found here (a stale HANDOFF, a drifted verifier, a silent hook)
-is treated as an incident: encoded or mechanized the same day.
+**If it breaks:** a harness bug found here (a stale map, a silent hook, a timer that never
+fired) is treated as an incident: encoded or mechanized the same day.
 
 ---
 
 ## 9. Taking over a codebase you did not write
 
-**When:** the first goal on a repository someone else built — a legacy service, a handover, an
-open-source project you just cloned.
+**When:** the first objective on a repository someone else built — a legacy service, a handover,
+an open-source project you just cloned.
 
 **Moves:** `/goal-brief <the outcome you want>` and read the draft for its `[ASSUMED]` markers —
 on an unfamiliar codebase those markers are the actual deliverable, because each one is a thing
@@ -187,8 +195,9 @@ the starting shape.
 
 **You rule on:** every `[ASSUMED]` marker, and which existing conventions are worth keeping.
 
-**If it breaks:** a phase whose done-when you cannot state mechanically is a phase you do not
-understand yet — split it or block it, rather than letting the loop grade itself on a promise.
+**If it breaks:** a lever whose kill test you cannot state in one line is a lever you do not
+understand yet. On an unknown codebase the current value and the ceiling are usually both
+unknown, and measuring them is the first lever, not a preliminary.
 
 ---
 
@@ -198,20 +207,19 @@ understand yet — split it or block it, rather than letting the loop grade itse
 no memory of where it got to.
 
 **Moves:** open a session in the project — `session-anchor` injects `HANDOFF.md` §1 before you
-type anything, and lists the active goals with their open docket counts. Then read the goal's
-own spine in `.harness/goals/<slug>/`: PHASES.md for what is DONE / READY / BLOCKED, the journal
-for what was actually run, digests for the short version. Nothing here was in the conversation,
-so nothing was lost with it.
+type anything, and says how many decisions are waiting in §4. Then read the rest of the map:
+levers open, in progress and dead with their numbers, fog, landmines; and the tail of
+`.harness/tried.md` for what was actually run. Nothing here was in the conversation, so nothing
+was lost with it.
 
 Two mechanical checks before continuing: `./verify-install.sh` (a fix that exists in the repo
 but was never installed does not run — that has cost two days once), and, for an unattended run,
 `tools/loop-watchdog.sh`, which distinguishes a loop that is quietly working from one whose
 session is dead and restarts only the second kind.
 
-**You rule on:** whether the phase that was in flight resumes or gets re-scoped. A phase
-interrupted mid-iteration is not automatically still the right phase.
+**You rule on:** whether the lever that was in flight resumes or gets dropped. A lever
+interrupted mid-iteration is not automatically still the biggest gap.
 
-**If it breaks:** if `HANDOFF.md` §1 no longer matches what the files say, trust the files and
-rewrite §1 — `handoff-freshness` warns when the anchor has gone stale behind the commits, but
+**If it breaks:** if the head line no longer matches what the files say, trust the files and
+rewrite it — `handoff-freshness` warns when the map has gone stale behind the commits, but
 only the files are evidence.
-

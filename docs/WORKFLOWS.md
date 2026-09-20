@@ -16,7 +16,7 @@ Each file's header documents its contract, and the agent runs it by name:
 `verify-install.sh` fails when a workflow's documented Invoke line stops naming every argument
 its code demands.
 
-Where each one sits in a whole goal is drawn in the [README](../README.md#using-it).
+Where each one sits in the loop is drawn in the [README](../README.md#using-it).
 
 ---
 
@@ -29,14 +29,16 @@ done-when mechanically checkable. A plan that fails those checks is rejected by 
 by another model's opinion of it. Waves fall out of the dependencies, and the tasks in a wave
 run at once.
 
-<p align="center"><img src="../assets/workflow-sdd-conductor.svg" alt="sdd-conductor: spec to task graph validated in code, then per wave each task gets an isolated copy with a RED phase first, returns a patch plus evidence, goes through two rounds of adversarial review, and is either blocked and docketed or integrated by patch-apply in wave order with the project suite after each wave" width="960"></p>
+<p align="center"><img src="../assets/workflow-sdd-conductor.svg" alt="sdd-conductor: spec to task graph validated in code, then per wave each task gets an isolated copy with a RED phase first, returns a patch plus evidence, goes through two rounds of adversarial review, and is either blocked and handed back to the caller or integrated by patch-apply in wave order with the project suite after each wave" width="960"></p>
 
 Each implementer works on its own copy of the project and returns a unified diff — it never
 touches the shared tree — with a RED phase first whenever the done-when is testable. Only the
 integrator applies patches, sequentially, in wave order, and a conflict blocks that task instead
 of being auto-resolved. Two rounds of adversarial review stand between a patch and the tree, and
-a surviving critical finding blocks the task **without stopping the build**: it comes back as a
-docket entry, and the rest of the wave lands. The project's own suite runs after every wave, so
+a surviving critical finding blocks the task **without stopping the build**: it comes back in the
+run's `docketEntries` for the session to record — a decision of the four kinds goes to the map's
+section 4, anything else is a line in `.harness/tried.md` — and the rest of the wave lands. The
+runtime writes no files itself. The project's own suite runs after every wave, so
 a build that went wrong is caught at the wave that broke it rather than at the end.
 
 ## pattern-migration

@@ -135,24 +135,24 @@ ${body}
 writeFileSync('assets/loop-iteration.svg', scene(1060, 430, (d) => {
   d.title('one iteration', 24, 34)
   // return path along the top
-  d.box(430, 50, 230, 62, ['schedule', 'the next iteration'], GREEN, 15)
-  d.line(880, 176, 880, 81)
-  d.arrow(880, 81, 666, 81, 'phases left')
+  d.box(430, 50, 230, 62, ['schedule', 'the next wake-up'], GREEN, 15)
+  d.line(900, 176, 900, 81)
+  d.arrow(900, 81, 666, 81, 'gap still open')
   d.line(426, 81, 118, 81)
   d.arrow(118, 81, 118, 176)
   // the row
-  d.box(30, 180, 178, 80, ['re-anchor', 'from disk'], BLUE, 16)
-  d.box(258, 180, 196, 80, ['work the first', 'READY phase'], YELLOW, 16)
-  d.box(504, 170, 222, 100, ['loop-verifier grades', 'the mechanical', 'done-when'], VIOLET, 15)
-  d.box(776, 170, 222, 100, ['PHASES.md · digest', 'HANDOFF §1'], GREEN, 15)
-  d.arrow(210, 220, 254, 220)
-  d.arrow(458, 220, 500, 220)
-  d.arrow(730, 220, 772, 220, 'PASS')
+  d.box(30, 180, 178, 80, ['re-anchor', 'from the map'], BLUE, 16)
+  d.box(248, 180, 216, 80, ['take the biggest gap,', 'list the levers'], YELLOW, 15)
+  d.box(504, 170, 222, 100, ['the cheapest test', 'that can kill', 'each lever'], VIOLET, 15)
+  d.box(776, 170, 250, 100, ['redraw the map', 'tried.md · digest'], GREEN, 15)
+  d.arrow(210, 220, 244, 220)
+  d.arrow(468, 220, 500, 220)
+  d.arrow(730, 220, 772, 220, 'it survived')
   // the two ways out, side by side
-  d.box(470, 330, 290, 70, ['fix it now,', 'or docket and stop'], RED, 15)
-  d.arrow(615, 272, 615, 326, 'FAIL')
-  d.box(800, 330, 236, 70, ['final check against', 'the goal contract'], GREY, 14)
-  d.arrow(918, 272, 918, 326, 'no phases left')
+  d.box(440, 330, 320, 70, ['dead, with the number:', 'on to the next lever'], RED, 15)
+  d.arrow(615, 272, 615, 326, 'killed')
+  d.box(790, 330, 250, 70, ['stop and ask:', 'one of the four kinds'], GREY, 14)
+  d.arrow(918, 272, 918, 326, 'gap stuck')
 }))
 
 // --- 2. pattern-migration ---------------------------------------------------
@@ -199,7 +199,7 @@ writeFileSync('assets/workflow-sdd-conductor.svg', scene(1030, 500, (d) => {
   d.diamond(766, 214, 216, 116, ['critical', 'survives?'], VIOLET, 14)
   d.arrow(874, 176, 874, 210)
 
-  d.box(752, 396, 250, 70, ['task BLOCKED, docketed', 'the build goes on'], RED, 14)
+  d.box(752, 396, 250, 70, ['task BLOCKED, handed back', 'the build goes on'], RED, 14)
   d.arrow(874, 334, 874, 392, 'yes')
 
   d.box(398, 386, 306, 90, ['integrate: patch-apply,', 'sequential, in wave order', 'a conflict blocks the task'], GREEN, 14)
@@ -290,13 +290,13 @@ writeFileSync('assets/workflow-second-opinion.svg', scene(1040, 440, (d) => {
 
 // --- 7. the whole flow ------------------------------------------------------
 writeFileSync('assets/full-flow.svg', scene(1180, 1560, (d) => {
-  d.title('one goal, end to end', 24, 40)
+  d.title('one objective, end to end', 24, 40)
 
   // rails
   d.note('HOOKS', 40, 92)
   d.note('and the event they fire on', 40, 112)
-  d.note('YOUR RULINGS', 946, 92)
-  d.note('where it stops and waits', 946, 112)
+  d.note('YOUR DECISIONS', 946, 92)
+  d.note('four kinds, nothing else', 946, 112)
 
   // --- setting it up
   d.box(300, 130, 250, 60, ['brainstorming'], GREY, 16)
@@ -304,13 +304,13 @@ writeFileSync('assets/full-flow.svg', scene(1180, 1560, (d) => {
   d.box(590, 130, 270, 60, ['spec-first'], GREY, 16)
   d.arrow(554, 160, 586, 160)
 
-  d.box(300, 250, 560, 66, ['/goal-brief writes GOAL.md', 'every guess marked [ASSUMED]'], YELLOW, 15)
+  d.box(300, 250, 560, 66, ['/goal-brief drafts the head of the map', 'every guess marked [ASSUMED]'], YELLOW, 15)
   d.arrow(580, 194, 580, 246)
   d.tag(946, 258, 214, ['you resolve every', '[ASSUMED] marker'], '#b2f2bb')
 
-  d.box(300, 356, 560, 60, ['/goal: goal-setup writes PHASES.md'], YELLOW, 15)
+  d.box(300, 356, 560, 60, ['HANDOFF.md: objective, value, gap, levers, fog'], YELLOW, 15)
   d.arrow(580, 320, 580, 352)
-  d.tag(946, 366, 214, ['plan-check: 60 seconds'], '#b2f2bb')
+  d.tag(946, 366, 214, ['no approval step:', 'it starts'], '#b2f2bb')
 
   d.box(300, 456, 560, 60, ['/loop /product-loop  ·  /research-loop'], VIOLET, 15)
   d.arrow(580, 420, 580, 452)
@@ -319,14 +319,14 @@ writeFileSync('assets/full-flow.svg', scene(1180, 1560, (d) => {
   d.region(268, 556, 624, 700, 'then it runs without you')
   d.arrow(580, 520, 580, 556)
 
-  d.box(300, 600, 520, 64, ['research phase: research-campaign'], BLUE, 15)
-  d.note('the prediction is registered before the spend', 300, 682)
-  d.box(300, 700, 520, 64, ['build phase: sdd-conductor'], BLUE, 15)
-  d.note('task graph, waves, patch-apply', 300, 782)
-  d.box(300, 800, 520, 82, ['convention phase: pattern-coverage,', 'pattern-migration, coverage again'], BLUE, 14)
-  d.note('measure, fix, measure again', 300, 900)
-  d.box(300, 920, 520, 60, ['loop-verifier grades the done-when'], VIOLET, 15)
-  d.box(300, 1010, 520, 64, ['digest · HANDOFF §1 · schedule the next'], GREEN, 15)
+  d.box(300, 600, 520, 64, ['re-anchor from the map, take the biggest gap'], BLUE, 15)
+  d.note('levers from the map, from its head, from outside', 300, 682)
+  d.box(300, 700, 520, 64, ['the cheapest test that can kill each lever'], VIOLET, 15)
+  d.note('minutes, not hours', 300, 782)
+  d.box(300, 800, 520, 82, ['winners built by hand, or by a workflow:', 'sdd-conductor, pattern-migration, research-campaign'], BLUE, 14)
+  d.note('a workflow only for a multi-file build with a spec', 300, 900)
+  d.box(300, 920, 520, 60, ['dead levers marked with the number'], RED, 15)
+  d.box(300, 1010, 520, 64, ['map redrawn · tried.md · schedule the next'], GREEN, 15)
   d.arrow(560, 668, 560, 696)
   d.arrow(560, 768, 560, 796)
   d.arrow(560, 886, 560, 916)
@@ -335,11 +335,11 @@ writeFileSync('assets/full-flow.svg', scene(1180, 1560, (d) => {
   d.line(866, 1042, 866, 632)
   d.arrow(866, 632, 824, 632)
   d.note('next iteration', 300, 1108)
-  d.box(300, 1120, 520, 60, ['stop by design when a ruling is missing'], RED, 15)
+  d.box(300, 1120, 520, 60, ['stop by design when the gap will not move'], RED, 15)
   d.arrow(560, 1078, 560, 1116)
 
-  d.tag(946, 800, 214, ['an authority edge:', 'a docket entry, and it waits'], '#b2f2bb')
-  d.tag(946, 1128, 214, ['the rulings it is waiting for'], '#b2f2bb')
+  d.tag(946, 800, 214, ['irreversible, spend, public,', 'objective: it asks, in chat'], '#b2f2bb')
+  d.tag(946, 1128, 214, ['the objective or the', 'ceiling may be wrong'], '#b2f2bb')
 
   // --- hooks rail
   d.tag(40, 560, 210, ['session-anchor', 'SessionStart'])
@@ -356,11 +356,11 @@ writeFileSync('assets/full-flow.svg', scene(1180, 1560, (d) => {
   d.note('never one that is quietly working', 40, 1206)
 
   // --- after the night
-  d.box(300, 1300, 560, 64, ['second-opinion on the branch, then /pr-message'], BLUE, 15)
+  d.box(300, 1300, 560, 64, ['the boundary: done report, second-opinion, /pr-message'], BLUE, 15)
   d.arrow(580, 1256, 580, 1296)
   d.tag(946, 1310, 214, ['you merge. always.'], '#b2f2bb')
 
-  d.box(300, 1400, 560, 60, ['/morning: the report on your phone'], GREEN, 15)
+  d.box(300, 1400, 560, 60, ['/morning: the map delta on your phone'], GREEN, 15)
   d.arrow(580, 1368, 580, 1396)
   d.tag(40, 1400, 210, ['notify-ntfy', 'Notification'])
   d.dashed(254, 1418, 296, 1424)

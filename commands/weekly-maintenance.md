@@ -1,38 +1,24 @@
 ---
-description: Scheduled weekly maintenance — triage, agentic adversarial audit, hook health, memory hygiene (C10)
+description: Scheduled weekly maintenance — stale maps, hook health, memory hygiene, one adversarial audit
 ---
 
-Weekly maintenance of the harness (ruling C10, 2026-08-12: runs scheduled via
-tools/install-schedules.sh; the old "100% PI time" ritual was never executed —
-0 out of 3 weeks. The agent does the checks; only the decisions reach the user).
-Write the report itself in the user's own language — user surface, "match the user's language" rule; only these
-instructions are English. Plain language, titles not IDs. Order:
+Weekly maintenance of the harness (scheduled via tools/install-schedules.sh; the agent does the
+checks, only decisions reach the user). Write the report in the user's own language, plain
+language, titles not IDs; only these instructions are English.
 
-1. **Cross-project docket triage.** Every `.harness/goals/*/docket.md` under ~/Projects
-   (skip `STATUS: PAUSED` goals): open entries with age in days, oldest first.
-   For each a proposal: decide now / can wait / kill — with the why in ≤15 words.
-   The proposals feed the decision batch of the next coffee report.
-2. **Agentic adversarial audit** (replaces the PI's spot-audit — ruling C10: he does not
-   read diffs, by choice). Pick ONE PASS-verified slice of the week at random
+1. **Stale maps.** Every `HANDOFF.md` under the projects root: head line unchanged for more than
+   two weeks, or over 150 lines, or section 4 (decisions) with more than three items. One line
+   per project with a proposal: reopen / archive / ask.
+2. **One adversarial audit.** Pick ONE commit of the week at random on a shared branch
    (`git log --oneline --since="1 week ago" | shuf -n1`, no cherry-picking) and launch
-   an independent adversarial agent (adversarial-reviewer) with a mandate to REFUTE the
-   PASS: diff vs done-when vs evidence. If the audit contradicts the verifier: harness
-   incident — tighten the verifier the same day, and at the top of the next coffee
-   report.
-3. **Hook health** (10s each). `bash tests/run.sh` in the harness repo; plus the live
-   type-tests: "fatto?" fixture → firefight-catch responds; push fixture → push-guard
-   decides per policy; session-anchor on the repo → emits HANDOFF §1. A silent hook
-   = incident.
-4. **Memory and surface hygiene.** HANDOFF over 80 lines per touched project;
-   goals with all phases done but not archived; auto-memory MEMORY.md with dead
-   entries; **GLOSSARY.md**: entries whose referent no longer exists (grep the term in
-   code/docs: zero hits = removal candidate) and terms coined in the week's digests
-   that are NOT in the glossary; **pruning skill sediment**: references to files or IDs
-   a fresh reader cannot resolve — an installed skill must stand on its own. Propose
-   the pruning diff, do not apply it.
-5. **Eval drift** (if evals/ exists). Run and compare with the latest RESULTS: a
-   dropped section is an incident; one stuck at 100% for 3+ weeks calls for harder
-   scenarios.
+   `adversarial-reviewer` (model opus) to refute it against the map's objective. A confirmed
+   defect goes to the top of the next morning report.
+3. **Hook health.** `bash tests/run.sh` in the harness repo, plus the live checks: session-anchor
+   on a project emits the map head; loop-guard blocks a close without a schedule; push-guard
+   decides per policy; a polling fixture ("done?") makes firefight-catch respond. A silent hook
+   is an incident.
+4. **Memory hygiene.** Per project auto-memory: entries that restate a rule now in CLAUDE.md,
+   entries contradicted by a later one, entries about files that no longer exist. Propose the
+   pruning diff; do not apply it.
 
-Report ≤ 50 lines: one section per point, each closed by "nessuna azione" (no action)
-or by the exact decision (which flows into the next morning's frontier batch).
+Report ≤ 30 lines, each section closed by "no action" or by the decision to take.

@@ -4,3 +4,7 @@
 # Ruling in chat, 2026-08-16: publish the removal of attribution stripping.
 # Plain pushes of master to origin. Force is NOT granted.
 origin master
+# Ruling in chat, 2026-09-20: publish 2.0.0 (the map spine) with its tag, and tag the
+# previous published commit so the first spine stays reachable.
+origin v1.0.0
+origin v2.0.0

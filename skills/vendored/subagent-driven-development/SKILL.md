@@ -32,26 +32,28 @@ that norms say you ask about first (a merge, a push to a shared branch, a
 publish); and a plan so broken that every path forward is a guess. For those,
 stop and ask.
 
-<!-- nightshift drift — "decide them" scoped to the authority the goal actually granted.
-     Upstream assumes the running plan is the whole contract; under this harness the goal
-     contract is, and it names an authority boundary. Without this scoping, the skill and
-     ORCHESTRATION.md §4 give opposite instructions on the same event. -->
+<!-- nightshift drift — "decide them" scoped to the authority the protocol actually grants.
+     Upstream assumes the running plan is the whole contract; under this harness the map and
+     the protocol name the authority boundary. Without this scoping, the skill and
+     ORCHESTRATION.md §3 and §6 give opposite instructions on the same event. -->
 
-**Scoping under a goal contract.** When this skill runs inside a goal
-(`.harness/goals/<slug>/`), "decide them" means *decide within the authority the goal
-granted* — not beyond it. The escalation ladder in `ORCHESTRATION.md` §4 is the binding
-version, and it is stricter than the four stops above:
+**Scoping to granted authority.** Under this harness "decide them" means *decide within the
+authority the protocol grants* — not beyond it. `ORCHESTRATION.md` §3 (the four kinds of
+decision that reach the user: irreversible, spend, public, change of objective) and §6 (never
+automated) are the binding version, and they are stricter than the four stops above:
 
 | Situation | What to do |
 |---|---|
-| Ambiguity with a safe default; out-of-scope finding | **Rule it.** Record `Ruling: … — … — …`, mark `[ASSUMED]` in the journal, keep going. |
-| Authority edge the goal did not grant (merge, protected path, new dependency, schema or public-API change) | **Docket it, block the phase.** Take the next independent phase if one exists. |
-| Second verifier failure on the same phase; budget at or past its cap | **Docket it, block the phase.** A retry needs a *new* hypothesis — never the same plan twice. |
-| Secrets or destructive operations; contradictory directives | **Pause the goal and notify.** |
+| Ambiguity with a safe default; out-of-scope finding | **Decide it.** One line saying what you decided, why, and what it costs if wrong; mark `[ASSUMED]`; keep going. |
+| Authority edge (merge to a shared branch, protected path, deploy, anything owned by someone else, spend past the cap) | **Block the task**, one line in the map's section 4. Take the next independent task if one exists. |
+| Second review failure on the same task; budget at or past its cap | **Block the task.** A retry needs a *new* hypothesis — never the same plan twice. |
+| Secrets or destructive operations; contradictory directives | **Stop and ask, in chat.** |
 
-What upstream is right about survives: a session parked on a question the agent had the
-authority to answer costs the user their whole day and buys nothing. The correction is only
-about *which* questions those are — the goal contract decides that, not the agent.
+Everything decided rather than escalated is written down: the map for what changes the plan,
+`.harness/tried.md` for what was tried and what it said. What upstream is right about survives:
+a session parked on a question the agent had the authority to answer costs the user their whole
+day and buys nothing. The correction is only about *which* questions those are — the protocol
+decides that, not the agent.
 
 ## When to Use
 

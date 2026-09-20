@@ -133,11 +133,23 @@ else
 fi
 
 # --- salience budget: installed skills ≤ 12 (README: "skill count is a budget") ---
-n_skills=$(find "$DEST/skills" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | wc -l)
+# The cap governs the surface THIS repo installs, so a directory counts only when it is a
+# skill — it carries a SKILL.md. Claude Code's own cloud-sync bucket `skills/synced/` holds
+# sub-buckets of claude.ai skills and used to be counted as one of ours: on 2026-09-17 it
+# appeared and turned this gate red, with "prune" as the advice for a directory install.sh
+# does not own and deleting it would only make it sync back (found 2026-09-20).
+n_skills=$(find "$DEST/skills" -mindepth 2 -maxdepth 2 -name SKILL.md 2>/dev/null | wc -l)
 if [ "$n_skills" -le 12 ]; then
   ok "installed skill surface ≤ 12 (found $n_skills)"
 else
   bad "installed skill surface" "$n_skills skills installed — over the §C.4 cap of 12; prune"
+fi
+
+# Not a gate: the synced bucket is a claude.ai account setting, not our surface — but it
+# spends the same salience, so it gets said out loud instead of hidden.
+if [ -d "$DEST/skills/synced" ]; then
+  n_synced=$(find "$DEST/skills/synced" -mindepth 2 -name SKILL.md 2>/dev/null | wc -l)
+  printf 'NOTE  skills/synced carries %s claude.ai-synced skills (not installed by this repo)\n' "$n_synced"
 fi
 
 # --- self-containment: installed skills must cite neither absent files nor ruling

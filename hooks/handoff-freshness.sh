@@ -40,13 +40,14 @@ h_mtime = os.path.getmtime(handoff)
 dirty = git("status", "--porcelain", raw=True) or ""
 dirty_files = [l[3:] for l in dirty.splitlines() if l.strip() and "HANDOFF.md" not in l]
 
-# C10 (2026-08-12): the ≤80-line limit lived only inside the never-executed weekly
-# ritual — result: a 644-line HANDOFF injected at EVERY session start. Now it lives here.
+# C10 (2026-08-12): the line limit lived only inside the never-executed weekly ritual —
+# result: a 644-line HANDOFF injected at EVERY session start. Now it lives here (150 since
+# 2026-09-08: the map carries levers and fog, not only the next step).
 try:
     n_lines = sum(1 for _ in open(handoff, encoding="utf-8", errors="replace"))
 except Exception:
     n_lines = 0
-oversize = n_lines > 80
+oversize = n_lines > 150
 
 stale_vs_commit = int(last_commit_ts) > int(h_mtime)
 if not stale_vs_commit and not dirty_files and not oversize:
@@ -54,8 +55,8 @@ if not stale_vs_commit and not dirty_files and not oversize:
 
 delta = []
 if oversize:
-    delta.append(f"HANDOFF.md is at {n_lines} lines (limit 80): it is a re-entry document, "
-                 "not a journal — history goes to digests/journal, the map stays here")
+    delta.append(f"HANDOFF.md is at {n_lines} lines (limit 150): it is a re-entry document, "
+                 "not a journal — history goes to git and .harness/tried.md, the map stays here")
 if stale_vs_commit:
     names = git("log", f"--since=@{int(h_mtime)}", "--name-only", "--format=") or ""
     changed = sorted({n for n in names.splitlines() if n.strip() and n != "HANDOFF.md"})

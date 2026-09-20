@@ -14,8 +14,8 @@ A fix without a named cause is a bet placed with the user's time. This contract 
 **Loop first (2026-08-12):** for any non-trivial bug, the first artifact is the feedback
 loop, not the hypothesis — a tight pass/fail reproduction that goes red on THIS bug,
 then minimized. With that loop in hand the cause will be found; without it, hypotheses
-are bets. The fix is verified by re-running the loop (inside a goal, the verifier
-re-runs it too — the repro outlives the session).
+are bets. The fix is verified by re-running the loop (keep the repro in the repo: it
+outlives the session, and the boundary review re-runs it).
 
 ## The contract
 
